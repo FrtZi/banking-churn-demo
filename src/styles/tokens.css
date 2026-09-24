@@ -1,0 +1,25 @@
+/* ------------------------------------------------------------------ tokens */
+:root {
+  --bg: #0d1726;
+  --bg2: #13233a;
+  --card: #1d2a3d;
+  --card2: #26364d;
+  --line: #33465f;
+  --text: #eef3f8;
+  --muted: #a9b6c6;
+  --blue: #0070c0;
+  --cyan: #00b0f0;
+  /* status: fixed meaning, always paired with an icon and a label */
+  --good: #0ca30c;
+  --warning: #fab219;
+  --critical: #d03b3b;
+  /* chart colours, read by THEME in app.js */
+  --series-learned: #3987e5;
+  --series-hidden: #d95926;
+  --fold: #2a78d6;
+  --grid: #2c3a4f;
+  --edge: #5b7291;
+  --edge-label: #cfe3f5;
+  --best-band: #1fa463;
+  --font: "Segoe UI", Calibri, system-ui, sans-serif;
+}

@@ -1,0 +1,10 @@
+/* ------------------------------------------------------------------ step 7: monitor */
+table.mon td,
+table.mon th {
+  white-space: normal;
+}
+table.mon td:nth-child(2),
+table.mon td:nth-child(3) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

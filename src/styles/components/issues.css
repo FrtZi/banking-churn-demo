@@ -1,0 +1,63 @@
+/* tick box + parameter rows (data-quality issues) */
+.checks {
+  display: grid;
+  gap: 6px;
+  border: 0;
+  padding: 0;
+  margin: 8px 0 0;
+}
+.checks label {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 15px;
+  cursor: pointer;
+}
+.checks input {
+  margin-top: 3px;
+  accent-color: var(--warning);
+  width: 16px;
+  height: 16px;
+}
+.issue {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 14px;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.issue:last-child {
+  border-bottom: 0;
+}
+.issue .param {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.issue .param input[type="range"] {
+  width: 120px;
+}
+.issue .param output {
+  min-width: 64px;
+  color: var(--text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.issue .param input:disabled + output {
+  color: var(--muted);
+  font-weight: 400;
+}
+.checks.stacked .issue {
+  grid-template-columns: 1fr;
+}
+.checks.stacked .issue .param {
+  padding-left: 24px;
+}
+.checks.stacked .issue .param input[type="range"] {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}

@@ -1,0 +1,43 @@
+/* ------------------------------------------------------------------ step 6: game clients */
+.clients {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.client {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.client .top {
+  background: var(--blue);
+  padding: 8px 12px;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+}
+.client .body {
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.client .risk {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--text);
+}
+.client .bar {
+  margin: 4px 0 8px;
+  height: 8px;
+}
+.verdict {
+  margin-top: 6px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+}
+.hidden-reveal .verdict,
+.hidden-reveal .actual {
+  visibility: hidden;
+}

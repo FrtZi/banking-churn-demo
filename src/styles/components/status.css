@@ -1,0 +1,37 @@
+/* ------------------------------------------------------------------ components: status icons, key-values, pickers */
+.status {
+  white-space: nowrap;
+  font-weight: 700;
+}
+.ico-good {
+  color: var(--good);
+}
+.ico-warning {
+  color: var(--warning);
+}
+.ico-critical {
+  color: var(--critical);
+}
+.kv {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.kv b {
+  font-variant-numeric: tabular-nums;
+}
+.kv:last-child {
+  border-bottom: 0;
+}
+.pick {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 8px 0 6px;
+}
+.pick .btn {
+  padding: 7px 12px;
+  font-size: 15px;
+}

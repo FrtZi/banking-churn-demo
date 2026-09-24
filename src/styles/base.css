@@ -1,0 +1,91 @@
+/* ------------------------------------------------------------------ base */
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+}
+body {
+  background: linear-gradient(180deg, #0b1320 0%, var(--bg) 40%, var(--bg2) 100%) fixed;
+  color: var(--text);
+  font: 17px/1.45 var(--font);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+h2 {
+  margin: 0 0 4px;
+  font-size: 30px;
+}
+h2[tabindex]:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+th,
+td {
+  padding: 7px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+th {
+  color: var(--cyan);
+  font-weight: 600;
+  font-size: 14px;
+}
+textarea {
+  width: 100%;
+  min-height: 120px;
+  background: var(--card2);
+  color: #fff;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  font: inherit;
+  resize: vertical;
+}
+input[type="range"] {
+  width: 260px;
+  accent-color: var(--cyan);
+}
+input[type="number"] {
+  width: 110px;
+  background: var(--card2);
+  color: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font: inherit;
+}
+svg text {
+  font-family: var(--font);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* shown only when src/index.html is opened as a file (ES modules need a server); main.js removes it */
+.dev-hint {
+  margin: 0;
+  padding: 12px 16px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}

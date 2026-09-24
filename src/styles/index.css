@@ -1,0 +1,21 @@
+/*
+ * Stylesheet entry point. Order matters: tokens first, then generic rules, components, steps, and
+ * utilities / media queries last so they win. The build (scripts/build.mjs) bundles these into one <style>.
+ */
+@import "tokens.css";
+@import "base.css";
+@import "layout.css";
+@import "components/cards.css";
+@import "components/bars.css";
+@import "components/status.css";
+@import "components/issues.css";
+@import "components/glossary.css";
+@import "steps/data.css";
+@import "steps/room.css";
+@import "steps/train.css";
+@import "steps/rules.css";
+@import "steps/results.css";
+@import "steps/clients.css";
+@import "steps/monitor.css";
+@import "utilities.css";
+@import "responsive.css";

@@ -1,0 +1,23 @@
+/* ------------------------------------------------------------------ step 1: data */
+.kpi {
+  flex: 1 1 180px;
+}
+.kpi .v {
+  font-size: 38px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.kpi .l {
+  color: var(--muted);
+  font-size: 15px;
+}
+/* a leaver in the preview table */
+.left {
+  color: var(--text);
+  font-weight: 700;
+}
+#csv {
+  margin-left: 10px;
+}

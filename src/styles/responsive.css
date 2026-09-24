@@ -1,0 +1,65 @@
+/* ------------------------------------------------------------------ small screens and motion */
+@media (max-width: 900px) {
+  header,
+  nav,
+  main,
+  footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  h2 {
+    font-size: 24px;
+  }
+  input[type="range"] {
+    width: 100%;
+  }
+  .row > * {
+    flex-basis: 100% !important;
+    min-width: 0;
+  }
+  .ctrl {
+    gap: 8px;
+  }
+  .ctrl label {
+    flex: 1 1 100%;
+  }
+  .kpi .v {
+    font-size: 30px;
+  }
+  .issue {
+    grid-template-columns: 1fr;
+  }
+  .issue .param input[type="range"] {
+    flex: 1;
+  }
+  #tree {
+    height: 340px;
+  }
+  .rule {
+    grid-template-columns: 56px 1fr;
+  }
+  .rule .bar {
+    grid-column: 1 / -1;
+  }
+  .matrix {
+    grid-template-columns: 58px 1fr 1fr;
+    gap: 6px;
+  }
+  .cell {
+    padding: 10px 6px;
+  }
+  .cell .n {
+    font-size: 32px;
+  }
+  .clients {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  section.on {
+    animation: none;
+  }
+  #tip {
+    transition: none;
+  }
+}

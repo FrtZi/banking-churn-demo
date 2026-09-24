@@ -1,0 +1,46 @@
+/* ------------------------------------------------------------------ step 4: rules */
+.rule {
+  display: grid;
+  grid-template-columns: 70px 1fr 200px;
+  gap: 14px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.rule .p {
+  font-size: 26px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.rule .txt {
+  font-size: 17px;
+}
+.rule .txt span {
+  color: var(--muted);
+}
+.room-summary {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+.room-summary li {
+  margin: 4px 0;
+}
+.room-summary span {
+  color: var(--muted);
+}
+table.vs {
+  margin: 12px 0 10px;
+  font-size: 15px;
+}
+table.vs th,
+table.vs td {
+  padding: 6px 8px;
+  white-space: normal;
+}
+table.vs td:not(:first-child),
+table.vs th:not(:first-child) {
+  text-align: right;
+}
+table.vs caption {
+  text-align: left;
+}

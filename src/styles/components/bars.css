@@ -1,0 +1,50 @@
+/* ------------------------------------------------------------------ components: risk bars, legends, tags */
+.bar {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--card2);
+  overflow: hidden;
+}
+.bar i {
+  display: block;
+  height: 100%;
+}
+.legend {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+.grad {
+  width: 160px;
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, #1c5cab, #3987e5, #86b6ef, #cde2fb);
+}
+.key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 14px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.key i {
+  width: 16px;
+  height: 3px;
+  border-radius: 2px;
+  display: inline-block;
+}
+.key .learned {
+  background: var(--series-learned);
+}
+.key .hidden {
+  background: var(--series-hidden);
+}
+.tag {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+}

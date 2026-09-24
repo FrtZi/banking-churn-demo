@@ -1,0 +1,102 @@
+/* ------------------------------------------------------------------ step 5: results */
+.matrix {
+  display: grid;
+  grid-template-columns: 110px 1fr 1fr;
+  grid-template-rows: auto 1fr 1fr;
+  gap: 10px;
+  max-width: 620px;
+}
+.matrix .h {
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+  align-self: end;
+}
+.matrix .rh {
+  color: var(--muted);
+  font-size: 14px;
+  align-self: center;
+  text-align: right;
+}
+.cell {
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+  background: var(--card);
+  border: 2px solid;
+}
+.cell .n {
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.cell .t {
+  font-weight: 700;
+  margin-top: 4px;
+}
+.cell .d {
+  color: var(--muted);
+  font-size: 13px;
+}
+.cell .n,
+.cell .t {
+  color: var(--text);
+}
+.good {
+  border-color: var(--good);
+}
+.bad {
+  border-color: var(--critical);
+}
+.warn {
+  border-color: var(--warning);
+}
+.rates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+  max-width: 620px;
+}
+.rates .card {
+  padding: 10px 14px;
+}
+.rates .big {
+  font-size: 26px;
+}
+#roc .hit {
+  cursor: pointer;
+}
+#roc .hit:focus {
+  outline: none;
+}
+#roc .hit:focus-visible + .dot,
+#roc .hit:hover + .dot {
+  stroke: var(--text);
+}
+.side {
+  flex: 1 1 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.side .ctrl label {
+  flex: 1 1 160px;
+}
+.side input[type="number"] {
+  width: 96px;
+}
+.alert {
+  border-left: 4px solid var(--warning);
+}
+#r-net {
+  font-size: 24px;
+  white-space: nowrap;
+}
+#r-net.gain {
+  color: var(--good);
+}
+#r-net.loss {
+  color: var(--critical);
+}
