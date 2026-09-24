@@ -4,11 +4,29 @@
   "description": "Live, dependency-free browser demo of a churn decision tree for banking data-literacy training.",
   "private": true,
   "license": "MIT",
+  "type": "module",
   "author": "Altaïra (https://altaira.eu)",
   "repository": "github:FrtZi/banking-churn-demo",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
+    "dev": "node scripts/serve.mjs",
     "build": "node scripts/build.mjs",
-    "test": "node --test"
+    "test": "npm run build && node --test",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "validate:html": "npm run build && html-validate dist/index.html",
+    "check": "npm run format:check && npm run lint && npm test && html-validate dist/index.html"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "esbuild": "^0.28.2",
+    "eslint": "^9.39.5",
+    "globals": "^17.12.0",
+    "html-validate": "^10.0.0",
+    "jsdom": "^26.1.0",
+    "prettier": "^3.9.9"
   }
 }
