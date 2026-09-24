@@ -13,7 +13,8 @@
   :root {
     --bg: #0d1726; --bg2: #13233a; --card: #1d2a3d; --card2: #26364d; --line: #33465f;
     --text: #eef3f8; --muted: #a9b6c6; --blue: #0070c0; --cyan: #00b0f0;
-    --green: #1fa463; --red: #d0473f; --amber: #e39b1a;
+    /* status tokens (fixed, always paired with an icon + label) */
+    --good: #0ca30c; --warning: #fab219; --critical: #d03b3b;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
@@ -46,7 +47,7 @@
   table { border-collapse: collapse; width: 100%; font-size: 15px; font-variant-numeric: tabular-nums; }
   th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
   th { color: var(--cyan); font-weight: 600; font-size: 14px; }
-  td.left { color: var(--red); font-weight: 600; }
+  td.left { color: var(--text); font-weight: 700; }
   .scroll { overflow-x: auto; }
   .btn {
     background: var(--blue); color: #fff; border: 0; border-radius: 8px; padding: 10px 18px;
@@ -65,14 +66,15 @@
   #tree { width: 100%; height: 540px; }
   #tree text { font-family: "Segoe UI", Calibri, sans-serif; }
   .legend { display: flex; gap: 16px; align-items: center; color: var(--muted); font-size: 14px; }
-  .grad { width: 160px; height: 10px; border-radius: 5px; background: linear-gradient(90deg, #1f7a4d, #b58a1a, #b53a3a); }
+  .grad { width: 160px; height: 10px; border-radius: 5px; background: linear-gradient(90deg, #1c5cab, #3987e5, #86b6ef, #cde2fb); }
   .rule { display: grid; grid-template-columns: 70px 1fr 200px; gap: 14px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
   .rule .p { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
   .rule .txt { font-size: 17px; }
   .rule .txt span { color: var(--muted); }
   .bar { height: 12px; border-radius: 6px; background: var(--card2); overflow: hidden; }
   .bar i { display: block; height: 100%; }
-  .flagged .txt::after { content: "  ▲ call"; color: var(--amber); font-size: 13px; font-weight: 700; }
+  .tag { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; }
+  .ico-warning { color: var(--warning); } .ico-good { color: var(--good); } .ico-critical { color: var(--critical); }
   textarea {
     width: 100%; min-height: 120px; background: var(--card2); color: #fff; border: 1px dashed var(--line);
     border-radius: 8px; padding: 10px; font: inherit; resize: vertical;
@@ -84,18 +86,18 @@
   .cell .n { font-size: 44px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
   .cell .t { font-weight: 700; margin-top: 4px; }
   .cell .d { color: var(--muted); font-size: 13px; }
-  .good { border-color: var(--green); } .good .n, .good .t { color: var(--green); }
-  .bad { border-color: var(--red); } .bad .n, .bad .t { color: var(--red); }
-  .warn { border-color: var(--amber); } .warn .n, .warn .t { color: var(--amber); }
+  .good { border-color: var(--good); } .bad { border-color: var(--critical); } .warn { border-color: var(--warning); }
+  .cell .n, .cell .t { color: var(--text); }
   .side { flex: 1 1 320px; display: flex; flex-direction: column; gap: 14px; }
   .big { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .alert { border-left: 4px solid var(--amber); }
+  .alert { border-left: 4px solid var(--warning); }
   .clients { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
   .client { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
   .client .top { background: var(--blue); padding: 8px 12px; font-weight: 700; display: flex; justify-content: space-between; }
   .client .body { padding: 10px 12px; font-size: 14px; color: var(--muted); }
-  .client .risk { font-size: 30px; font-weight: 700; color: #fff; }
-  .verdict { margin-top: 6px; font-weight: 700; font-size: 15px; }
+  .client .risk { font-size: 30px; font-weight: 700; color: var(--text); }
+  .client .bar { margin: 4px 0 8px; height: 8px; }
+  .verdict { margin-top: 6px; font-weight: 700; font-size: 15px; color: var(--text); }
   .hidden-reveal .verdict, .hidden-reveal .actual { visibility: hidden; }
   footer { color: var(--muted); font-size: 13px; padding: 0 32px 24px; }
   footer a { color: var(--cyan); }
@@ -180,11 +182,11 @@
         <div class="matrix">
           <div></div><div class="h">Really <b>left</b></div><div class="h">Really <b>stayed</b></div>
           <div class="rh">Model says<br><b>call</b></div>
-          <div class="cell good"><div class="n" id="m-tp"></div><div class="t">Caught</div><div class="d">leaver flagged in time</div></div>
-          <div class="cell warn"><div class="n" id="m-fp"></div><div class="t">False alarm</div><div class="d">one call for nothing</div></div>
+          <div class="cell good"><div class="n" id="m-tp"></div><div class="t"><span class="ico-good" aria-hidden="true">✔</span> Caught</div><div class="d">leaver flagged in time</div></div>
+          <div class="cell warn"><div class="n" id="m-fp"></div><div class="t"><span class="ico-warning" aria-hidden="true">⚠</span> False alarm</div><div class="d">one call for nothing</div></div>
           <div class="rh">Model says<br><b>fine</b></div>
-          <div class="cell bad"><div class="n" id="m-fn"></div><div class="t">Missed</div><div class="d">leaver not flagged</div></div>
-          <div class="cell good"><div class="n" id="m-tn"></div><div class="t">Left alone</div><div class="d">loyal, not bothered</div></div>
+          <div class="cell bad"><div class="n" id="m-fn"></div><div class="t"><span class="ico-critical" aria-hidden="true">✘</span> Missed</div><div class="d">leaver not flagged</div></div>
+          <div class="cell good"><div class="n" id="m-tn"></div><div class="t"><span class="ico-good" aria-hidden="true">✔</span> Left alone</div><div class="d">loyal, not bothered</div></div>
         </div>
       </div>
       <div class="side">
@@ -279,14 +281,12 @@
   };
 
   // ---------- step 2: tree
-  const color = (p) => {
-    const t = Math.min(1, p / 0.6);
-    const mix = (a, b, u) => a.map((v, i) => Math.round(v + (b[i] - v) * u));
-    const c = t < 0.5 ? mix([31, 122, 77], [181, 138, 26], t * 2) : mix([181, 138, 26], [181, 58, 58], (t - 0.5) * 2);
-    return `rgb(${c.join(",")})`;
-  };
-  // brighter variant for text on dark cards
-  const tcolor = (p) => (p >= 0.3 ? "#ff7b6e" : p >= 0.15 ? "#f5b942" : "#4fd99a");
+  // share of leavers is a magnitude: one-hue sequential ramp, dark (near 0%) -> light (60%+)
+  // starts at step 550: the darkest step must still clear 2:1 against the card
+  const RAMP = ["#1c5cab", "#256abf", "#2a78d6", "#3987e5", "#5598e7", "#6da7ec", "#86b6ef", "#9ec5f4", "#b7d3f6", "#cde2fb"];
+  const step = (p) => Math.round(Math.min(1, p / 0.6) * (RAMP.length - 1));
+  const color = (p) => RAMP[step(p)];
+  const ink = (p) => (step(p) >= 2 ? "#0b0b0b" : "#ffffff"); // >= 4.5:1 on every step
   function retrain() {
     tree = Core.train(train, +$("depth").value);
     $("depth-o").textContent = $("depth").value;
@@ -318,15 +318,16 @@
           walk(child);
         }
       }
-      const fill = color(n.p);
-      s += `<rect x="${n.x}" y="${n.y}" width="${W}" height="${H}" rx="10" fill="${fill}" stroke="${n.f ? "none" : "#ffffff"}" stroke-width="${n.f ? 0 : 1.5}"/>`;
+      const fill = color(n.p), fg = ink(n.p);
+      s += `<g><title>${n.n} clients, ${n.pos} left (${pct(n.p)})</title><rect x="${n.x}" y="${n.y}" width="${W}" height="${H}" rx="10" fill="${fill}" stroke="${n.f ? "none" : "#0d1726"}" stroke-width="${n.f ? 0 : 2}"/>`;
       if (n.f) {
-        s += `<text x="${n.x + W / 2}" y="${n.y + 26}" fill="#fff" font-size="15" font-weight="700" text-anchor="middle">${Core.nodeLabel(n.f)}</text>`;
-        s += `<text x="${n.x + W / 2}" y="${n.y + 48}" fill="#f1f5f9" font-size="12.5" text-anchor="middle">${n.n} clients · ${pct(n.p)} left</text>`;
+        s += `<text x="${n.x + W / 2}" y="${n.y + 26}" fill="${fg}" font-size="15" font-weight="700" text-anchor="middle">${Core.nodeLabel(n.f)}</text>`;
+        s += `<text x="${n.x + W / 2}" y="${n.y + 48}" fill="${fg}" font-size="12.5" text-anchor="middle">${n.n} clients · ${pct(n.p)} left</text>`;
       } else {
-        s += `<text x="${n.x + W / 2}" y="${n.y + 30}" fill="#fff" font-size="22" font-weight="700" text-anchor="middle">${pct(n.p)} left</text>`;
-        s += `<text x="${n.x + W / 2}" y="${n.y + 51}" fill="#f1f5f9" font-size="12.5" text-anchor="middle">${n.n} clients</text>`;
+        s += `<text x="${n.x + W / 2}" y="${n.y + 30}" fill="${fg}" font-size="22" font-weight="700" text-anchor="middle">${pct(n.p)} left</text>`;
+        s += `<text x="${n.x + W / 2}" y="${n.y + 51}" fill="${fg}" font-size="12.5" text-anchor="middle">${n.n} clients</text>`;
       }
+      s += "</g>";
     };
     walk(tree);
     svg.innerHTML = s;
@@ -341,8 +342,9 @@
     const L = Core.leaves(tree).sort((a, b) => b.node.p - a.node.p);
     $("rules").innerHTML = L.map((l) => `
       <div class="rule ${l.node.p >= thr ? "flagged" : ""}">
-        <div class="p" style="color:${tcolor(l.node.p)}">${pct(l.node.p)}</div>
+        <div class="p">${pct(l.node.p)}</div>
         <div class="txt">${l.path.length ? Core.ruleText(l.path).join(" <span>AND</span> ") : "All clients"}
+          ${l.node.p >= thr ? '<span class="tag"><span class="ico-warning" aria-hidden="true">▲</span> call</span>' : ""}
           <div class="note">${l.node.n} clients · ${l.node.pos} left</div></div>
         <div class="bar"><i style="width:${Math.max(3, l.node.p * 100 / 0.7)}%;background:${color(l.node.p)}"></i></div>
       </div>`).join("");
@@ -363,7 +365,8 @@
     $("r-base").innerHTML = `A “model” that says <b>nobody leaves</b> scores ${pct((m.tn + m.fp) / test.length)} without catching a single leaver. Accuracy alone is misleading.`;
     const net = m.tp * ($("v-save").value / 100) * $("v-client").value - calls * $("v-call").value;
     $("r-net").textContent = `${eur(net)} / yr`;
-    $("r-net").style.color = net >= 0 ? "var(--green)" : "var(--red)";
+    $("r-net").textContent = `${net >= 0 ? "▲" : "▼"} ${eur(net)} / yr`;
+    $("r-net").style.color = net >= 0 ? "var(--good)" : "var(--critical)";
     drawRules(); drawClients();
   }
 
@@ -373,13 +376,14 @@
     let ok = 0;
     $("clients").innerHTML = Core.GAME.map((c) => {
       const p = Core.predict(tree, c), flag = p >= thr;
-      const [txt, col] = flag && c.churn ? ["Caught ✔", "var(--green)"] : flag ? ["False alarm", "var(--amber)"]
-        : c.churn ? ["Missed ✘", "var(--red)"] : ["Left alone ✔", "var(--green)"];
+      const [txt, icon, cls] = flag && c.churn ? ["Caught", "✔", "good"] : flag ? ["False alarm", "⚠", "warning"]
+        : c.churn ? ["Missed", "✘", "critical"] : ["Left alone", "✔", "good"];
       if (flag === !!c.churn) ok++;
       return `<div class="client"><div class="top"><span>${c.id} · ${c.name}</span><span class="actual">${c.churn ? "LEFT" : "STAYED"}</span></div>
-        <div class="body"><div>Model risk</div><div class="risk" style="color:${tcolor(p)}">${pct(p)}</div>
+        <div class="body"><div>Model risk</div><div class="risk">${pct(p)}</div>
+        <div class="bar" aria-hidden="true"><i style="width:${Math.max(3, p * 100 / 0.7)}%;background:${color(p)}"></i></div>
         <div>${flag ? "→ call this client" : "→ no action"}</div>
-        <div class="verdict" style="color:${col}">${txt}</div></div></div>`;
+        <div class="verdict"><span class="ico-${cls}" aria-hidden="true">${icon}</span> ${txt}</div></div></div>`;
     }).join("");
     $("g-summary").textContent = "";
     $("g-summary").dataset.ok = ok;
