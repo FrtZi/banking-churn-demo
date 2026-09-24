@@ -104,6 +104,21 @@
   #roc .hit:focus-visible + .dot, #roc .hit:hover + .dot { stroke: var(--text); }
   .side .ctrl label { flex: 1 1 160px; }
   .side input[type=number] { width: 96px; }
+  .room-card h3 { margin: 0 0 2px; font-size: 18px; color: var(--cyan); }
+  fieldset.rule-box { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px 10px; margin: 10px 0 0; }
+  fieldset.rule-box legend { color: var(--muted); font-size: 13px; padding: 0 4px; }
+  .cond { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+  .cond .and { color: var(--muted); font-size: 13px; width: 34px; }
+  .cond select, .cond input[type=number] {
+    background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 6px;
+    padding: 5px 6px; font: inherit; font-size: 15px;
+  }
+  .cond select.sig { flex: 1 1 150px; min-width: 0; }
+  .cond input[type=number] { width: 76px; }
+  table.vs { margin: 12px 0 10px; font-size: 15px; }
+  table.vs th, table.vs td { padding: 6px 8px; white-space: normal; }
+  table.vs td:not(:first-child), table.vs th:not(:first-child) { text-align: right; }
+  .room-card textarea { min-height: 60px; }
   .pick { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 6px; }
   .pick .btn { padding: 7px 12px; font-size: 15px; }
   .big { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -176,11 +191,18 @@
     <h2 tabindex="-1">3 · The rules the machine found</h2>
     <p class="lead">Each branch of the tree is a rule a business person can read. Compare with the rules the room proposed.</p>
     <div class="row">
-      <div class="card" style="flex:2 1 560px" id="rules"></div>
-      <div class="card" style="flex:1 1 300px">
-        <label for="room" style="display:block;font-weight:700;color:var(--cyan);margin-bottom:8px">The room's rules</label>
-        <textarea id="room" placeholder="Type the rules the room proposed during the game…&#10;e.g. assets down + no contact for 6 months"></textarea>
-        <p class="note">Same signals? Same thresholds? What did the machine see that we did not, and vice versa?</p>
+      <div class="card" style="flex:2 1 480px" id="rules"></div>
+      <div class="card room-card" style="flex:1 1 380px">
+        <h3>The room's rules</h3>
+        <p class="note" style="margin:0">Enter the rules the room proposed after the game. A client is called if <b>any</b> rule matches.</p>
+        <div id="room-rules"></div>
+        <div class="pick">
+          <button class="btn ghost" id="room-example">Load an example</button>
+          <button class="btn ghost" id="room-clear">Clear</button>
+        </div>
+        <table class="vs" id="room-vs" aria-live="polite"></table>
+        <label for="room-missing" class="note">Signals the room used that are <b>not</b> in the data</label>
+        <textarea id="room-missing" placeholder="e.g. competitor offer, family event, moving abroad"></textarea>
       </div>
     </div>
   </section>
@@ -390,6 +412,93 @@
       </div>`).join("");
   }
 
+  // ---------- step 3: the room's rules, scored on the same unseen clients as the machine
+  const SIGNALS = {
+    assets: { label: "Assets change (12 m), %", ops: ["le", "ge"], def: -20, step: 5 },
+    contact: { label: "Months since advisor contact", ops: ["ge", "le"], def: 6, step: 1 },
+    complaint: { label: "Complaint (last 3 m)", bool: true },
+    advisor: { label: "Advisor changed this year", bool: true },
+    app: { label: "App usage", choices: ["none", "dropping", "stable", "active", "none or dropping"] },
+    products: { label: "Products held", ops: ["le", "ge"], def: 1, step: 1 },
+    tenure: { label: "Client since (years)", ops: ["le", "ge"], def: 3, step: 1 },
+    age: { label: "Age", ops: ["ge", "le"], def: 60, step: 5 },
+  };
+  const OP_LABEL = { le: "at most", ge: "at least" };
+  let room = [[null, null], [null, null], [null, null]]; // 3 rules x 2 conditions (AND)
+  const fromCore = (c) => c.op === "in" ? { key: c.key, choice: "none or dropping" }
+    : c.key === "app" ? { key: c.key, choice: c.value }
+    : SIGNALS[c.key].bool ? { key: c.key, yes: c.value === 1 } : { key: c.key, op: c.op, value: c.value };
+  const toCore = (c) => c.key === "app"
+    ? (c.choice === "none or dropping" ? { key: "app", op: "in", value: ["none", "dropping"] } : { key: "app", op: "is", value: c.choice })
+    : SIGNALS[c.key].bool ? { key: c.key, op: "is", value: c.yes ? 1 : 0 } : { key: c.key, op: c.op, value: c.value };
+  const roomRules = () => room.map((rule) => rule.filter(Boolean).map(toCore));
+  const hasRoomRules = () => roomRules().some((r) => r.length);
+
+  function condControls(c, id, name) {
+    const opts = `<option value="">—</option>` + Object.entries(SIGNALS).map(([k, sg]) =>
+      `<option value="${k}" ${c && c.key === k ? "selected" : ""}>${sg.label}</option>`).join("");
+    let h = `<select class="sig" id="${id}-key" aria-label="${name}: signal">${opts}</select>`;
+    if (!c) return h;
+    const sg = SIGNALS[c.key];
+    if (sg.bool) {
+      h += `<select id="${id}-val" aria-label="${name}: value"><option value="1" ${c.yes ? "selected" : ""}>yes</option><option value="0" ${c.yes ? "" : "selected"}>no</option></select>`;
+    } else if (sg.choices) {
+      h += `<select id="${id}-val" aria-label="${name}: value">${sg.choices.map((v) => `<option ${c.choice === v ? "selected" : ""}>${v}</option>`).join("")}</select>`;
+    } else {
+      h += `<select id="${id}-op" aria-label="${name}: comparison">${sg.ops.map((o) => `<option value="${o}" ${c.op === o ? "selected" : ""}>${OP_LABEL[o]}</option>`).join("")}</select>`;
+      h += `<input type="number" id="${id}-val" aria-label="${name}: value" value="${c.value}" step="${sg.step}">`;
+    }
+    return h;
+  }
+  function drawRoomBuilder() {
+    const focused = document.activeElement && document.activeElement.id;
+    $("room-rules").innerHTML = room.map((rule, i) => `
+      <fieldset class="rule-box"><legend>Rule ${i + 1}</legend>
+        ${rule.map((c, j) => (j && !rule[0] && !c) ? "" // the AND line appears once the first condition is set
+          : `<div class="cond">${j ? '<span class="and">AND</span>' : ""}${condControls(c, `r${i}c${j}`, `Rule ${i + 1}, condition ${j + 1}`)}</div>`).join("")}
+      </fieldset>`).join("");
+    room.forEach((rule, i) => rule.forEach((c, j) => {
+      const id = `r${i}c${j}`;
+      if (!$(`${id}-key`)) return;
+      $(`${id}-key`).onchange = (e) => {
+        const k = e.target.value, sg = SIGNALS[k];
+        room[i][j] = !k ? null : sg.bool ? { key: k, yes: true } : sg.choices ? { key: k, choice: "none or dropping" }
+          : { key: k, op: sg.ops[0], value: sg.def };
+        drawRoomBuilder(); drawRoomScore();
+      };
+      if (!c) return;
+      const val = $(`${id}-val`), op = $(`${id}-op`);
+      if (op) op.onchange = () => { c.op = op.value; drawRoomScore(); };
+      val.oninput = val.onchange = () => {
+        if (SIGNALS[c.key].bool) c.yes = val.value === "1";
+        else if (SIGNALS[c.key].choices) c.choice = val.value;
+        else c.value = Number(val.value) || 0;
+        drawRoomScore();
+      };
+    }));
+    if (focused && $(focused)) $(focused).focus();
+  }
+  function drawRoomScore() {
+    const thr = +$("thr").value / 100;
+    const mm = Core.evaluate(tree, test, thr);
+    const leavers = mm.tp + mm.fn;
+    if (!hasRoomRules()) {
+      $("room-vs").innerHTML = `<caption class="note" style="text-align:left">No rule yet: the room calls nobody.</caption>`;
+    } else {
+      const rm = Core.evaluateRules(roomRules(), test);
+      const row = (label, a, b) => `<tr><th scope="row">${label}</th><td>${a}</td><td>${b}</td></tr>`;
+      $("room-vs").innerHTML = `<caption class="note" style="text-align:left">On the ${test.length} unseen clients of 2025</caption>` +
+        `<tr><th scope="col"></th><th scope="col">Room</th><th scope="col">Machine at ${$("thr").value}%</th></tr>` +
+        row("Calls", rm.tp + rm.fp, mm.tp + mm.fp) +
+        row("Leavers caught", `${rm.tp} / ${leavers}`, `${mm.tp} / ${leavers}`) +
+        row("False alarms", rm.fp, mm.fp) +
+        row("Net value", eur(netValue(rm)), eur(netValue(mm)));
+    }
+    drawRoc(thr);
+  }
+  $("room-example").onclick = () => { room = Core.ROOM_EXAMPLE.map((r) => [0, 1].map((j) => (r[j] ? fromCore(r[j]) : null))); drawRoomBuilder(); drawRoomScore(); };
+  $("room-clear").onclick = () => { room = [[null, null], [null, null], [null, null]]; drawRoomBuilder(); drawRoomScore(); };
+
   // ---------- step 4: results
   function drawResults() {
     const thr = +$("thr").value / 100;
@@ -409,7 +518,7 @@
     $("r-net").style.color = net >= 0 ? "var(--good)" : "var(--critical)";
     $("r-sens").textContent = leavers ? pct(m.tp / leavers) : "–";
     $("r-spec").textContent = pct(m.tn / (m.tn + m.fp));
-    drawRoc(thr);
+    drawRoomScore(); // also redraws the ROC curve
     drawRules(); drawClients();
   }
 
@@ -455,6 +564,14 @@
       ? `<text x="${X(q.fpr) + 8}" y="${Y(q.tpr) + 24}" fill="#eef3f8" font-size="12" font-weight="700" pointer-events="none">${text}</text>`
       : `<text x="${X(q.fpr) - 10}" y="${Y(q.tpr) - 10}" fill="#eef3f8" font-size="12" font-weight="700" text-anchor="end" pointer-events="none">${text}</text>`;
     s += elbow === best ? label(elbow, "Elbow = best €", true) : label(elbow, "Elbow", true) + label(best, "Best €", false);
+    if (hasRoomRules()) {
+      const rm = Core.evaluateRules(roomRules(), test);
+      const pos = rm.tp + rm.fn, neg = rm.fp + rm.tn;
+      const rx = X(neg ? rm.fp / neg : 0), ry = Y(pos ? rm.tp / pos : 0);
+      const tip = `Room's rules: ${rm.tp + rm.fp} calls, ${rm.tp} of ${pos} leavers caught, ${rm.fp} false alarms`;
+      s += `<rect x="${rx - 6}" y="${ry - 6}" width="12" height="12" transform="rotate(45 ${rx} ${ry})" fill="#d95926" stroke="#1d2a3d" stroke-width="2"><title>${tip}</title></rect>`;
+      s += `<text x="${rx + 11}" y="${ry + 4}" fill="#eef3f8" font-size="12" font-weight="700" pointer-events="none">Room</text>`;
+    }
     const svg = $("roc");
     svg.innerHTML = s;
     svg.querySelectorAll(".hit").forEach((c) => {
@@ -501,6 +618,7 @@
   // announce the outcome once the slider is released, not on every step
   $("thr").onchange = () => { $("sr-status").textContent = $("r-caught").textContent; };
   for (const id of ["v-client", "v-call", "v-save"]) $(id).oninput = drawResults;
+  drawRoomBuilder();
   retrain();
   go((parseInt(location.hash.slice(1), 10) || 1) - 1, false);
 })();

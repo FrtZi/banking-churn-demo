@@ -87,3 +87,26 @@ test("the model beats random guessing (AUC)", () => {
   const a = Core.auc(Core.roc(tree, test2025));
   assert.ok(a > 0.6 && a <= 1, `AUC ${a}`);
 });
+
+test("hand-written rules: AND inside a rule, OR between rules", () => {
+  const row = { assets: -25, contact: 7, complaint: 0, advisor: 0, app: "dropping" };
+  assert.equal(Core.matches({ key: "assets", op: "le", value: -20 }, row), true);
+  assert.equal(Core.matches({ key: "contact", op: "ge", value: 8 }, row), false);
+  assert.equal(Core.matches({ key: "app", op: "in", value: ["none", "dropping"] }, row), true);
+  const one = [{ key: "complaint", op: "is", value: 1 }];
+  const two = [{ key: "assets", op: "le", value: -20 }, { key: "contact", op: "ge", value: 6 }];
+  assert.equal(Core.evaluateRules([one], [{ ...row, churn: 1 }]).fn, 1);
+  assert.equal(Core.evaluateRules([one, two], [{ ...row, churn: 1 }]).tp, 1);
+});
+
+test("no rule means nobody is called", () => {
+  const m = Core.evaluateRules([[], [], []], test2025);
+  assert.equal(m.tp + m.fp, 0);
+});
+
+test("the example room rules tell the story used in the training", () => {
+  const m = Core.evaluateRules(Core.ROOM_EXAMPLE, test2025);
+  assert.deepEqual([m.tp + m.fp, m.tp, m.fp], [21, 8, 13]);
+  const intuitive = Core.evaluateRules([[{ key: "assets", op: "le", value: -20 }]], test2025);
+  assert.ok(intuitive.tp <= 1, "assets down alone is mostly noise (house purchases)");
+});

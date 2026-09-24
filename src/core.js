@@ -187,6 +187,34 @@ const Core = (() => {
     return m;
   }
 
+  // ---------- hand-written rules ("the room's rules")
+  // A condition is { key, op, value } with op: "le" (<=), "ge" (>=), "is" (===) or "in" (one of value[]).
+  // A rule is a list of conditions joined by AND; a client is called if ANY rule matches (OR).
+  function matches(cond, row) {
+    const v = row[cond.key];
+    if (cond.op === "le") return v <= cond.value;
+    if (cond.op === "ge") return v >= cond.value;
+    if (cond.op === "is") return v === cond.value;
+    if (cond.op === "in") return cond.value.includes(v);
+    throw new Error(`unknown operator ${cond.op}`);
+  }
+  const ruleFlags = (rules, row) => rules.some((rule) => rule.length > 0 && rule.every((c) => matches(c, row)));
+  function evaluateRules(rules, rows) {
+    const m = { tp: 0, fp: 0, fn: 0, tn: 0 };
+    for (const r of rows) {
+      const flag = ruleFlags(rules, r);
+      if (flag && r.churn) m.tp++; else if (flag) m.fp++; else if (r.churn) m.fn++; else m.tn++;
+    }
+    return m;
+  }
+
+  // typical rules proposed by a room after the game (used by the "Load an example" button)
+  const ROOM_EXAMPLE = [
+    [{ key: "assets", op: "le", value: -20 }, { key: "contact", op: "ge", value: 6 }],
+    [{ key: "complaint", op: "is", value: 1 }],
+    [{ key: "advisor", op: "is", value: 1 }, { key: "contact", op: "ge", value: 6 }],
+  ];
+
   // ROC curve on scored rows: one point per distinct risk level, from "call nobody" to "call everybody".
   // Each point is the threshold t = that risk level (clients with risk >= t are called).
   function roc(tree, rows) {
@@ -204,6 +232,6 @@ const Core = (() => {
   // area under the (piecewise-linear) ROC curve
   const auc = (points) => points.slice(1).reduce((s, q, i) => s + (q.fpr - points[i].fpr) * (q.tpr + points[i].tpr) / 2, 0);
 
-  return { roc, auc, rng, generate, GAME, FEATURES, train, predict, leaves, ruleText, evaluate, edgeLabel, nodeLabel, APP };
+  return { matches, evaluateRules, ROOM_EXAMPLE, roc, auc, rng, generate, GAME, FEATURES, train, predict, leaves, ruleText, evaluate, edgeLabel, nodeLabel, APP };
 })();
 if (typeof module !== "undefined") module.exports = Core;
