@@ -102,6 +102,16 @@
   .kv { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
   .kv b { font-variant-numeric: tabular-nums; }
   .kv:last-child { border-bottom: 0; }
+  .term { border-bottom: 1px dotted currentColor; cursor: help; }
+  .term:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; border-radius: 2px; }
+  #tip {
+    position: fixed; z-index: 10; max-width: 320px; padding: 8px 12px; border-radius: 8px;
+    background: #eef3f8; color: #0b1320; font-size: 14px; line-height: 1.4; font-weight: 400;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, .45); pointer-events: none; opacity: 0; transition: opacity .12s;
+  }
+  #tip.on { opacity: 1; }
+  #tip b { display: block; margin-bottom: 2px; }
+  @media (prefers-reduced-motion: reduce) { #tip { transition: none; } }
   .ctrl.stack { flex-direction: column; align-items: flex-start; gap: 6px; }
   #tree text { font-family: "Segoe UI", Calibri, sans-serif; }
   .legend { display: flex; gap: 16px; align-items: center; color: var(--muted); font-size: 14px; }
@@ -194,7 +204,7 @@
 <body>
 <header>
   <h1>Let the machine find the rules</h1>
-  <span class="sub">Churn prediction · private banking · synthetic data</span>
+  <span class="sub"><span class="term" tabindex="0" data-term="churn">Churn</span> prediction · private banking · <span class="term" tabindex="0" data-term="synthetic">synthetic data</span></span>
 </header>
 <nav id="nav" aria-label="Demo steps"></nav>
 <main>
@@ -208,7 +218,7 @@
         <select id="gen-n" class="gen-select">
           <option>100</option><option>200</option><option>500</option><option>1000</option><option>2000</option><option>5000</option>
         </select>
-        <label for="gen-split">Learn / test split</label>
+        <label for="gen-split"><span class="term" tabindex="0" data-term="split">Learn / test split</span></label>
         <input type="range" id="gen-split" min="50" max="95" step="5">
         <output id="gen-split-o"></output>
         <button class="btn ghost" id="gen-new">New random sample</button>
@@ -259,12 +269,12 @@
   <!-- 3 TRAIN -->
   <section id="s-train">
     <h2 tabindex="-1">3 · Train a decision tree</h2>
-    <p class="lead">The machine looks for the question that best separates leavers from loyal clients, then repeats inside each group.</p>
+    <p class="lead">The <span class="term" tabindex="0" data-term="tree">decision tree</span> looks for the question that best separates leavers from loyal clients, then repeats inside each group.</p>
     <div class="ctrl">
-      <label for="depth">How many questions in a row?</label>
+      <label for="depth">How many questions in a row? (<span class="term" tabindex="0" data-term="depth">depth</span>)</label>
       <input type="range" id="depth" min="1" max="8" step="1" value="3">
       <output id="depth-o"></output>
-      <label for="minpct">Each group must cover at least</label>
+      <label for="minpct">Each <span class="term" tabindex="0" data-term="mingroup">group</span> must cover at least</label>
       <input type="range" id="minpct" min="0" max="5" step="1" value="3" aria-valuetext="3% of clients">
       <output id="minpct-o"></output>
       <button class="btn" id="search">Find the best level</button>
@@ -276,17 +286,17 @@
         <div class="legend"><span>Share of clients who left:</span><span>low</span><span class="grad"></span><span>high</span></div>
         <p class="note" id="tree-note"></p>
         <p class="note" style="margin-bottom:0"><b>Why a minimum group size?</b> A rule that covers 2 clients is an anecdote, not a pattern.
-          Anomaly detection (e.g. Isolation Forest) does the opposite: it keeps splitting until one client is isolated, and the fastest isolated are the most unusual.</p>
+          <span class="term" tabindex="0" data-term="anomaly">Anomaly detection</span> (e.g. <span class="term" tabindex="0" data-term="iforest">Isolation Forest</span>) does the opposite: it keeps splitting until one client is isolated, and the fastest isolated are the most unusual.</p>
       </div>
       <div class="train-side">
         <div class="card">
           <h3>How is the best level found?</h3>
-          <p class="note" style="margin:0 0 4px">Score = how well the model ranks leavers above loyal clients (50% = coin flip).</p>
+          <p class="note" style="margin:0 0 4px"><span class="term" tabindex="0" data-term="auc">Score</span> = how well the model ranks leavers above loyal clients (50% = coin flip).</p>
           <div><span class="key"><i style="background:#3987e5"></i>Clients it learned from</span><span class="key"><i style="background:#d95926"></i>Hidden clients</span></div>
           <svg id="vc" viewBox="0 0 400 250" role="img" aria-labelledby="vc-title" aria-describedby="vc-desc"></svg>
           <span class="sr-only" id="vc-title">Score by number of questions, on learned clients and on hidden clients.</span>
           <div class="folds" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-          <p class="note" style="margin:0">Cross-validation: hide 1/5 of the 2024 clients, learn on the other 4/5, score on the hidden fifth; 5 times. The 2025 clients stay untouched for step 5.</p>
+          <p class="note" style="margin:0"><span class="term" tabindex="0" data-term="cv">Cross-validation</span>: hide 1/5 of the 2024 clients, learn on the other 4/5, score on the hidden fifth; 5 times. The 2025 clients stay untouched for step 5.</p>
           <p class="note" id="vc-desc" aria-live="polite" style="margin:6px 0 0"></p>
         </div>
         <div class="card">
@@ -326,23 +336,24 @@
     </div>
     <div class="row">
       <div style="flex:1 1 400px">
+        <p class="note" style="margin:0 0 8px"><span class="term" tabindex="0" data-term="confusion">Confusion matrix</span>: what the model said × what really happened.</p>
         <div class="matrix">
           <div></div><div class="h">Really <b>left</b></div><div class="h">Really <b>stayed</b></div>
           <div class="rh">Model says<br><b>call</b></div>
           <div class="cell good"><span class="sr-only">Model says call, client really left: </span><div class="n" id="m-tp"></div><div class="t"><span class="ico-good" aria-hidden="true">✔</span> Caught</div><div class="d">leaver flagged in time</div></div>
-          <div class="cell warn"><span class="sr-only">Model says call, client really stayed: </span><div class="n" id="m-fp"></div><div class="t"><span class="ico-warning" aria-hidden="true">⚠</span> False alarm</div><div class="d">one call for nothing</div></div>
+          <div class="cell warn"><span class="sr-only">Model says call, client really stayed: </span><div class="n" id="m-fp"></div><div class="t"><span class="ico-warning" aria-hidden="true">⚠</span> <span class="term" tabindex="0" data-term="falsealarm">False alarm</span></div><div class="d">one call for nothing</div></div>
           <div class="rh">Model says<br><b>fine</b></div>
-          <div class="cell bad"><span class="sr-only">Model says fine, client really left: </span><div class="n" id="m-fn"></div><div class="t"><span class="ico-critical" aria-hidden="true">✘</span> Missed</div><div class="d">leaver not flagged</div></div>
+          <div class="cell bad"><span class="sr-only">Model says fine, client really left: </span><div class="n" id="m-fn"></div><div class="t"><span class="ico-critical" aria-hidden="true">✘</span> <span class="term" tabindex="0" data-term="missed">Missed</span></div><div class="d">leaver not flagged</div></div>
           <div class="cell good"><span class="sr-only">Model says fine, client really stayed: </span><div class="n" id="m-tn"></div><div class="t"><span class="ico-good" aria-hidden="true">✔</span> Left alone</div><div class="d">loyal, not bothered</div></div>
         </div>
         <div class="rates">
-          <div class="card"><div class="note">Sensitivity</div><div class="big" id="r-sens"></div><div class="note">of leavers are caught</div></div>
-          <div class="card"><div class="note">Specificity</div><div class="big" id="r-spec"></div><div class="note">of loyal clients are left alone</div></div>
+          <div class="card"><div class="note"><span class="term" tabindex="0" data-term="sensitivity">Sensitivity</span></div><div class="big" id="r-sens"></div><div class="note">of leavers are caught</div></div>
+          <div class="card"><div class="note"><span class="term" tabindex="0" data-term="specificity">Specificity</span></div><div class="big" id="r-spec"></div><div class="note">of loyal clients are left alone</div></div>
         </div>
       </div>
       <div class="card roc-card" style="flex:1 1 380px">
         <h3>How is the threshold chosen?</h3>
-        <p class="note" style="margin:0 0 6px">Each dot is one possible threshold. Top-left would be perfect; the diagonal is a coin flip.</p>
+        <p class="note" style="margin:0 0 6px">This <span class="term" tabindex="0" data-term="roc">ROC curve</span> shows each possible <span class="term" tabindex="0" data-term="threshold">threshold</span> as a dot. Top-left would be perfect; the diagonal is a coin flip.</p>
         <svg id="roc" viewBox="0 0 400 330" role="img" aria-labelledby="roc-title" aria-describedby="roc-desc"></svg>
         <span class="sr-only" id="roc-title">ROC curve: share of leavers caught against false-alarm rate, one point per threshold.</span>
         <div class="pick" role="group" aria-label="Choose the threshold automatically">
@@ -354,14 +365,14 @@
       <div class="side">
         <div class="card"><div class="note">Calls to make</div><div class="big" id="r-calls"></div>
           <div class="note" id="r-caught"></div></div>
-        <div class="card alert"><div class="note">Accuracy</div><div class="big" id="r-acc"></div>
+        <div class="card alert"><div class="note"><span class="term" tabindex="0" data-term="accuracy">Accuracy</span></div><div class="big" id="r-acc"></div>
           <div class="note" id="r-base"></div></div>
         <div class="card">
           <div class="note" style="margin-bottom:8px">Business view (adjust live)</div>
           <div class="ctrl" style="margin:0 0 6px"><label for="v-client">Revenue lost per leaver, €/yr</label><input type="number" id="v-client" value="12000" step="1000" min="0"></div>
           <div class="ctrl" style="margin:0 0 6px"><label for="v-call">Cost of one retention call, €</label><input type="number" id="v-call" value="150" step="50" min="0"></div>
           <div class="ctrl" style="margin:0"><label for="v-save">Leavers saved by a call, %</label><input type="number" id="v-save" value="30" step="5" min="0" max="100"></div>
-          <div style="margin-top:10px">Net value of the campaign:<br><span class="big" id="r-net" style="font-size:24px;white-space:nowrap"></span></div>
+          <div style="margin-top:10px"><span class="term" tabindex="0" data-term="netvalue">Net value</span> of the campaign:<br><span class="big" id="r-net" style="font-size:24px;white-space:nowrap"></span></div>
         </div>
       </div>
     </div>
@@ -380,7 +391,7 @@
   <!-- 7 MONITOR (production: new clients arrive, outcomes only known months later) -->
   <section id="s-monitor">
     <h2 tabindex="-1">7 · Monitor new clients</h2>
-    <p class="lead">The model is live. <span id="mon-n"></span> new clients arrive in 2026, and whether they leave will only be known months later. Until then, we watch the data going in.</p>
+    <p class="lead">The model is live (<span class="term" tabindex="0" data-term="inference">inference</span>). <span id="mon-n"></span> new clients arrive in 2026, and whether they leave will only be known months later. Until then, we watch the data going in.</p>
     <div class="row">
       <div class="card" style="flex:1 1 300px">
         <h3 style="margin:0 0 2px;font-size:18px">Break the incoming data</h3>
@@ -388,8 +399,8 @@
         <p class="note" style="margin:10px 0 0">The model does not change. Only the data it receives does.</p>
       </div>
       <div class="card" style="flex:1.3 1 380px">
-        <h3 style="margin:0 0 2px;font-size:18px">Data drift monitor</h3>
-        <p class="note" style="margin:0 0 6px">Each signal of the new batch compared with the data the model learned from (Population Stability Index: below 0.10 stable, 0.10–0.25 watch, above 0.25 alert).</p>
+        <h3 style="margin:0 0 2px;font-size:18px">Data <span class="term" tabindex="0" data-term="drift">drift</span> monitor</h3>
+        <p class="note" style="margin:0 0 6px">Each signal of the new batch compared with the data the model learned from (<span class="term" tabindex="0" data-term="psi">Population Stability Index</span>: below 0.10 stable, 0.10–0.25 watch, above 0.25 alert).</p>
         <table class="mon" id="t-psi"></table>
       </div>
       <div class="card" style="flex:1 1 300px">
@@ -403,6 +414,7 @@
     </div>
   </section>
 </main>
+<div id="tip" role="tooltip" aria-hidden="true"></div>
 <div class="sr-only" aria-live="polite" id="sr-status"></div>
 <footer>Synthetic data for training purposes only: no real bank, client or person is represented. Decision tree (CART) computed live in your browser; works offline. · Made by <a href="https://altaira.eu" rel="noopener">Altaïra</a> · <a href="https://github.com/FrtZi/banking-churn-demo" rel="noopener">Source code (MIT)</a></footer>
 
@@ -412,6 +424,66 @@
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
+
+  // ---------- glossary: hover, keyboard focus or tap on a dotted term shows a short definition
+  const GLOSSARY = {
+    churn: ["Churn", "A client leaving the bank (closing accounts or moving assets away)."],
+    synthetic: ["Synthetic data", "Fictitious clients generated by this page: realistic patterns, no real bank, client or person."],
+    split: ["Learn / test split", "Part of the clients is used to learn; the rest is kept aside to check the model on clients it has never seen."],
+    tree: ["Decision tree", "A model that asks a series of yes/no questions about a client (e.g. “complaint?”) and ends in a group with a known share of leavers."],
+    depth: ["Depth", "How many questions the tree may ask in a row. More depth gives more detailed groups, and more risk of overfitting."],
+    mingroup: ["Minimum group size", "The smallest share of clients a rule may describe. A rule covering 2 clients is an anecdote, not a pattern."],
+    anomaly: ["Anomaly detection", "Models that look for unusual cases (e.g. possible fraud) rather than predicting a known outcome."],
+    iforest: ["Isolation Forest", "An anomaly-detection model: it isolates clients with random splits; the fewer splits needed, the more unusual the client."],
+    auc: ["Ranking score (AUC)", "Area Under the ROC Curve: the chance that the model ranks a random leaver above a random loyal client. 50% = coin flip, 100% = perfect."],
+    cv: ["Cross-validation", "Hide part of the learning data, learn on the rest, score on the hidden part; repeat and average. It measures quality without touching the final test set."],
+    overfitting: ["Overfitting", "The model learns the noise of past data by heart: excellent on the past, worse on new clients."],
+    certainty: ["False certainty", "An overfitted model gives extreme 0% or 100% risks that new data does not support."],
+    sensitivity: ["Sensitivity", "Share of real leavers the model flags. Also called recall or true positive rate."],
+    specificity: ["Specificity", "Share of loyal clients the model leaves alone. 1 − specificity is the false-alarm rate."],
+    confusion: ["Confusion matrix", "A table crossing what the model said with what really happened: caught, false alarms, missed, left alone."],
+    falsealarm: ["False alarm", "A loyal client flagged as leaving (a false positive): one call for nothing."],
+    missed: ["Missed leaver", "A client who left but was not flagged (a false negative): the costly error."],
+    roc: ["ROC curve", "Receiver Operating Characteristic: leavers caught against false alarms, for every possible threshold."],
+    threshold: ["Threshold", "The risk level above which we act (call the client). Lower = more calls, more leavers caught, more false alarms."],
+    elbow: ["Elbow", "The point of the ROC curve furthest above the coin-flip diagonal: the best statistical balance between catching leavers and false alarms (Youden's J)."],
+    accuracy: ["Accuracy", "Share of all predictions that are right. Misleading when leavers are rare: saying “nobody leaves” is already 90% accurate."],
+    netvalue: ["Net value", "Revenue kept thanks to the calls, minus the cost of the calls, using the business assumptions below."],
+    drift: ["Data drift", "When the data arriving in production no longer looks like the data the model learned from."],
+    psi: ["Population Stability Index (PSI)", "How much a signal's distribution moved since the model was trained. Below 0.10 stable, 0.10–0.25 watch, above 0.25 alert."],
+    inference: ["Inference", "Using a trained model to score new clients. The model no longer learns; it only applies what it learned."],
+  };
+  const term = (key, text) => `<span class="term" tabindex="0" data-term="${key}">${text}</span>`;
+  (() => {
+    const tip = $("tip");
+    let owner = null;
+    const show = (el) => {
+      const g = GLOSSARY[el.dataset.term];
+      if (!g) return;
+      owner = el;
+      tip.innerHTML = `<b>${g[0]}</b>${g[1]}`;
+      tip.setAttribute("aria-hidden", "false");
+      el.setAttribute("aria-describedby", "tip");
+      const r = el.getBoundingClientRect();
+      tip.style.left = "0px"; tip.style.top = "0px"; tip.classList.add("on");
+      const w = tip.offsetWidth, h = tip.offsetHeight;
+      const left = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), innerWidth - w - 8);
+      const top = r.top - h - 8 >= 8 ? r.top - h - 8 : r.bottom + 8; // above if it fits, else below
+      tip.style.left = `${left}px`; tip.style.top = `${top}px`;
+    };
+    const hide = () => {
+      if (owner) owner.removeAttribute("aria-describedby");
+      owner = null; tip.classList.remove("on"); tip.setAttribute("aria-hidden", "true");
+    };
+    const termOf = (e) => e.target.closest && e.target.closest(".term");
+    document.addEventListener("mouseover", (e) => { const el = termOf(e); if (el) show(el); });
+    document.addEventListener("mouseout", (e) => { if (termOf(e)) hide(); });
+    document.addEventListener("focusin", (e) => { const el = termOf(e); if (el) show(el); else hide(); });
+    document.addEventListener("focusout", (e) => { if (termOf(e)) hide(); });
+    document.addEventListener("click", (e) => { const el = termOf(e); if (el) { el === owner ? hide() : show(el); } else hide(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") hide(); });
+    addEventListener("scroll", hide, { passive: true });
+  })();
   const pct = (x) => `${Math.round(x * 100)}%`;
   const eur = (x) => `${x < 0 ? "−" : ""}€${Math.abs(Math.round(x)).toLocaleString("en-US")}`;
   // training default: every figure quoted in the speaker notes assumes these settings
@@ -605,8 +677,8 @@
     $("vc").innerHTML = s;
     if (done) {
       const b = search.curve[search.best - 1], last = search.curve.at(-1);
-      $("vc-desc").textContent = `Best level: ${b.depth} questions (${pct(b.hidden)} on hidden clients). ` +
-        `At 8 questions the model scores ${pct(last.learned)} on the clients it learned from but only ${pct(last.hidden)} on hidden ones: it memorizes instead of generalizing.`;
+      $("vc-desc").innerHTML = `Best level: ${b.depth} questions (${pct(b.hidden)} on hidden clients). ` +
+        `At 8 questions the model scores ${pct(last.learned)} on the clients it learned from but only ${pct(last.hidden)} on hidden ones: it memorizes instead of generalizing (${term("overfitting", "overfitting")}).`;
     } else if (!searching) $("vc-desc").textContent = "";
   }
 
@@ -637,7 +709,7 @@
     }).join("");
     const extreme = test.filter((r) => { const p = Core.predict(tree, r); return p === 0 || p === 1; }).length;
     $("certainty").innerHTML = extreme
-      ? `<span class="ico-warning" aria-hidden="true">⚠</span> <b>${extreme} of ${test.length}</b> new clients get a 0% or 100% prediction: false certainty.`
+      ? `<span class="ico-warning" aria-hidden="true">⚠</span> <b>${extreme} of ${test.length}</b> new clients get a 0% or 100% prediction: ${term("certainty", "false certainty")}.`
       : `No new client gets a 0% or 100% prediction.`;
   }
 
@@ -711,9 +783,9 @@
     walk(tree);
     svg.innerHTML = s;
     const L = Core.leaves(tree);
-    $("tree-note").textContent = `${L.length} groups of clients, from ${pct(Math.min(...L.map((l) => l.node.p)))} to ${pct(Math.max(...L.map((l) => l.node.p)))} of leavers. ` +
+    $("tree-note").innerHTML = `${L.length} groups of clients, from ${pct(Math.min(...L.map((l) => l.node.p)))} to ${pct(Math.max(...L.map((l) => l.node.p)))} of leavers. ` +
       (search && shown === search.curve.length && +$("depth").value > search.best
-        ? `Beyond ${search.best} questions the model starts memorizing noise (overfitting).`
+        ? `Beyond ${search.best} questions the model starts memorizing noise (${term("overfitting", "overfitting")}).`
         : "More questions = more detail, but also more risk of learning noise.");
   }
 
@@ -962,8 +1034,8 @@
     });
     $("pick-elbow").onclick = () => setThreshold(elbow.t);
     $("pick-value").onclick = () => setThreshold(best.t);
-    $("roc-desc").innerHTML = `Area under the curve (the ranking score of step 3): <b>${pct(Core.auc(all))}</b> (50% = coin flip, 100% = perfect). ` +
-      `The <b>elbow</b> (${Math.floor(elbow.t * 100)}%) catches the most leavers for the fewest false alarms. ` +
+    $("roc-desc").innerHTML = `${term("auc", "Area under the curve")} (the ranking score of step 3): <b>${pct(Core.auc(all))}</b> (50% = coin flip, 100% = perfect). ` +
+      `The <b>${term("elbow", "elbow")}</b> (${Math.floor(elbow.t * 100)}%) catches the most leavers for the fewest false alarms. ` +
       `But the right point is a business choice: with the € assumptions below, the <b>best value</b> is at ${Math.floor(best.t * 100)}%. Click any dot to try it.`;
   }
 
