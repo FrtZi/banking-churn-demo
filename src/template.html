@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Churn Model Demo</title>
+<meta name="description" content="Interactive demo: a decision tree learns which private-banking clients are likely to leave. Synthetic data, runs in the browser, built for data-literacy training.">
+<meta name="author" content="Altaïra">
+<meta property="og:title" content="Let the machine find the rules · Churn Model Demo">
+<meta property="og:description" content="A decision tree trained live on synthetic banking clients: rules, errors and business trade-offs, explained for managers.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230d1726'/%3E%3Ccircle cx='26' cy='32' r='13' fill='%23ffd9a0'/%3E%3Ccircle cx='36' cy='32' r='13' fill='%230d1726' stroke='%23ffb347' stroke-width='2'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #0d1726; --bg2: #13233a; --card: #1d2a3d; --card2: #26364d; --line: #33465f;
+    --text: #eef3f8; --muted: #a9b6c6; --blue: #0070c0; --cyan: #00b0f0;
+    --green: #1fa463; --red: #d0473f; --amber: #e39b1a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: linear-gradient(180deg, #0b1320 0%, var(--bg) 40%, var(--bg2) 100%) fixed;
+    color: var(--text); font: 17px/1.45 "Segoe UI", Calibri, system-ui, sans-serif; min-height: 100vh;
+  }
+  header { display: flex; align-items: center; gap: 24px; padding: 18px 32px 0; flex-wrap: wrap; }
+  header h1 { margin: 0; font-size: 26px; color: var(--cyan); font-weight: 700; letter-spacing: .2px; }
+  header .sub { color: var(--muted); font-size: 15px; }
+  nav { display: flex; gap: 8px; padding: 16px 32px 0; flex-wrap: wrap; }
+  nav button {
+    background: var(--card); color: var(--muted); border: 1px solid var(--line); border-radius: 999px;
+    padding: 8px 16px; font: inherit; font-size: 15px; cursor: pointer;
+  }
+  nav button b { color: var(--cyan); margin-right: 6px; }
+  nav button.on { background: var(--blue); color: #fff; border-color: var(--blue); }
+  nav button.on b { color: #fff; }
+  main { padding: 20px 32px 40px; max-width: 1400px; }
+  section { display: none; }
+  section.on { display: block; animation: fade .2s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  h2 { margin: 0 0 4px; font-size: 30px; }
+  .lead { color: var(--muted); margin: 0 0 20px; font-size: 18px; }
+  .row { display: flex; gap: 18px; flex-wrap: wrap; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+  .kpi { flex: 1 1 180px; }
+  .kpi .v { font-size: 38px; font-weight: 700; color: #fff; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .kpi .l { color: var(--muted); font-size: 15px; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--cyan); font-weight: 600; font-size: 14px; }
+  td.left { color: var(--red); font-weight: 600; }
+  .scroll { overflow-x: auto; }
+  .btn {
+    background: var(--blue); color: #fff; border: 0; border-radius: 8px; padding: 10px 18px;
+    font: inherit; font-weight: 600; cursor: pointer;
+  }
+  .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--muted); font-weight: 400; }
+  .ctrl { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+  .ctrl label { color: var(--muted); }
+  .ctrl output { font-size: 22px; font-weight: 700; color: #fff; min-width: 3ch; }
+  input[type=range] { width: 260px; accent-color: var(--cyan); }
+  input[type=number] {
+    width: 110px; background: var(--card2); color: #fff; border: 1px solid var(--line); border-radius: 6px;
+    padding: 6px 8px; font: inherit;
+  }
+  .note { color: var(--muted); font-size: 14px; }
+  #tree { width: 100%; height: 540px; }
+  #tree text { font-family: "Segoe UI", Calibri, sans-serif; }
+  .legend { display: flex; gap: 16px; align-items: center; color: var(--muted); font-size: 14px; }
+  .grad { width: 160px; height: 10px; border-radius: 5px; background: linear-gradient(90deg, #1f7a4d, #b58a1a, #b53a3a); }
+  .rule { display: grid; grid-template-columns: 70px 1fr 200px; gap: 14px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .rule .p { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .rule .txt { font-size: 17px; }
+  .rule .txt span { color: var(--muted); }
+  .bar { height: 12px; border-radius: 6px; background: var(--card2); overflow: hidden; }
+  .bar i { display: block; height: 100%; }
+  .flagged .txt::after { content: "  ▲ call"; color: var(--amber); font-size: 13px; font-weight: 700; }
+  textarea {
+    width: 100%; min-height: 120px; background: var(--card2); color: #fff; border: 1px dashed var(--line);
+    border-radius: 8px; padding: 10px; font: inherit; resize: vertical;
+  }
+  .matrix { display: grid; grid-template-columns: 110px 1fr 1fr; grid-template-rows: auto 1fr 1fr; gap: 10px; max-width: 620px; }
+  .matrix .h { color: var(--muted); font-size: 14px; text-align: center; align-self: end; }
+  .matrix .rh { color: var(--muted); font-size: 14px; align-self: center; text-align: right; }
+  .cell { border-radius: 12px; padding: 14px; text-align: center; background: var(--card); border: 2px solid; }
+  .cell .n { font-size: 44px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+  .cell .t { font-weight: 700; margin-top: 4px; }
+  .cell .d { color: var(--muted); font-size: 13px; }
+  .good { border-color: var(--green); } .good .n, .good .t { color: var(--green); }
+  .bad { border-color: var(--red); } .bad .n, .bad .t { color: var(--red); }
+  .warn { border-color: var(--amber); } .warn .n, .warn .t { color: var(--amber); }
+  .side { flex: 1 1 320px; display: flex; flex-direction: column; gap: 14px; }
+  .big { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .alert { border-left: 4px solid var(--amber); }
+  .clients { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .client { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .client .top { background: var(--blue); padding: 8px 12px; font-weight: 700; display: flex; justify-content: space-between; }
+  .client .body { padding: 10px 12px; font-size: 14px; color: var(--muted); }
+  .client .risk { font-size: 30px; font-weight: 700; color: #fff; }
+  .verdict { margin-top: 6px; font-weight: 700; font-size: 15px; }
+  .hidden-reveal .verdict, .hidden-reveal .actual { visibility: hidden; }
+  footer { color: var(--muted); font-size: 13px; padding: 0 32px 24px; }
+  footer a { color: var(--cyan); }
+  :focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+  @media (max-width: 900px) {
+    header, nav, main, footer { padding-left: 16px; padding-right: 16px; }
+    .clients { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .rule { grid-template-columns: 56px 1fr; } .rule .bar { grid-column: 1 / -1; }
+    #tree { height: 380px; }
+    input[type=range] { width: 100%; }
+    h2 { font-size: 24px; }
+    .row > * { flex-basis: 100% !important; min-width: 0; }
+    .matrix { grid-template-columns: 58px 1fr 1fr; gap: 6px; }
+    .cell { padding: 10px 6px; } .cell .n { font-size: 32px; }
+    .ctrl { gap: 8px; } .ctrl label { flex: 1 1 100%; }
+    .kpi .v { font-size: 30px; }
+  }
+  body { overflow-x: hidden; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Let the machine find the rules</h1>
+  <span class="sub">Churn prediction · private banking · synthetic data</span>
+</header>
+<nav id="nav" aria-label="Demo steps"></nav>
+<main>
+  <!-- 1 DATA -->
+  <section id="s1">
+    <h2>1 · The data</h2>
+    <p class="lead">500 fictitious clients with the same signals as the game. We know who left, so the machine can learn from the past.</p>
+    <div class="row" style="margin-bottom:18px">
+      <div class="card kpi"><div class="v" id="k-n"></div><div class="l">clients</div></div>
+      <div class="card kpi"><div class="v" id="k-train"></div><div class="l">to <b>learn</b> from (2024 outcomes)</div></div>
+      <div class="card kpi"><div class="v" id="k-test"></div><div class="l">kept aside to <b>test</b> (2025, never seen)</div></div>
+      <div class="card kpi"><div class="v" id="k-rate"></div><div class="l">of clients left</div></div>
+    </div>
+    <div class="card scroll"><table id="t-data"></table></div>
+    <p class="note" style="margin-top:12px">What the data cannot see: competitor offers, house purchases, family events… exactly like in real life.
+      <button class="btn ghost" id="csv" style="margin-left:10px">Download CSV</button></p>
+  </section>
+
+  <!-- 2 TRAIN -->
+  <section id="s2">
+    <h2>2 · Train a decision tree</h2>
+    <p class="lead">The machine looks for the question that best separates leavers from loyal clients, then repeats inside each group.</p>
+    <div class="ctrl">
+      <label for="depth">How many questions in a row?</label>
+      <input type="range" id="depth" min="1" max="5" step="1" value="3">
+      <output id="depth-o"></output>
+      <span class="legend"><span>Share of clients who left:</span><span>low</span><span class="grad"></span><span>high</span></span>
+    </div>
+    <div class="card"><svg id="tree" role="img" aria-label="Decision tree"></svg></div>
+    <p class="note" id="tree-note"></p>
+  </section>
+
+  <!-- 3 RULES -->
+  <section id="s3">
+    <h2>3 · The rules the machine found</h2>
+    <p class="lead">Each branch of the tree is a rule a business person can read. Compare with the rules the room proposed.</p>
+    <div class="row">
+      <div class="card" style="flex:2 1 560px" id="rules"></div>
+      <div class="card" style="flex:1 1 300px">
+        <div style="font-weight:700;color:var(--cyan);margin-bottom:8px">The room's rules</div>
+        <textarea id="room" placeholder="Type the rules the room proposed during the game…&#10;e.g. assets down + no contact for 6 months"></textarea>
+        <p class="note">Same signals? Same thresholds? What did the machine see that we did not, and vice versa?</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 RESULTS -->
+  <section id="s4">
+    <h2>4 · How good is it on new clients?</h2>
+    <p class="lead">Tested on the <span id="r-test"></span> clients of 2025 the model has never seen.</p>
+    <div class="ctrl">
+      <label for="thr">Call a client when the risk is at least</label>
+      <input type="range" id="thr" min="5" max="60" step="1" value="30">
+      <output id="thr-o"></output>
+    </div>
+    <div class="row">
+      <div style="flex:1 1 560px">
+        <div class="matrix">
+          <div></div><div class="h">Really <b>left</b></div><div class="h">Really <b>stayed</b></div>
+          <div class="rh">Model says<br><b>call</b></div>
+          <div class="cell good"><div class="n" id="m-tp"></div><div class="t">Caught</div><div class="d">leaver flagged in time</div></div>
+          <div class="cell warn"><div class="n" id="m-fp"></div><div class="t">False alarm</div><div class="d">one call for nothing</div></div>
+          <div class="rh">Model says<br><b>fine</b></div>
+          <div class="cell bad"><div class="n" id="m-fn"></div><div class="t">Missed</div><div class="d">leaver not flagged</div></div>
+          <div class="cell good"><div class="n" id="m-tn"></div><div class="t">Left alone</div><div class="d">loyal, not bothered</div></div>
+        </div>
+      </div>
+      <div class="side">
+        <div class="card"><div class="note">Calls to make</div><div class="big" id="r-calls"></div>
+          <div class="note" id="r-caught"></div></div>
+        <div class="card alert"><div class="note">Accuracy</div><div class="big" id="r-acc"></div>
+          <div class="note" id="r-base"></div></div>
+        <div class="card">
+          <div class="note" style="margin-bottom:8px">Business view (adjust live)</div>
+          <div class="ctrl" style="margin:0 0 6px"><label>Revenue lost per leaver, €/yr</label><input type="number" id="v-client" value="12000" step="1000" min="0"></div>
+          <div class="ctrl" style="margin:0 0 6px"><label>Cost of one retention call, €</label><input type="number" id="v-call" value="150" step="50" min="0"></div>
+          <div class="ctrl" style="margin:0"><label>Leavers saved by a call, %</label><input type="number" id="v-save" value="30" step="5" min="0" max="100"></div>
+          <div style="margin-top:10px">Net value of the campaign: <span class="big" id="r-net" style="font-size:24px"></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 GAME CLIENTS -->
+  <section id="s5">
+    <h2>5 · Back to our 8 clients</h2>
+    <p class="lead">What does the model say about Marc, Sophie, Jean…? Same threshold as step 4 (<span id="g-thr"></span>).</p>
+    <div class="clients hidden-reveal" id="clients"></div>
+    <div class="ctrl" style="margin-top:16px">
+      <button class="btn" id="reveal">Reveal what really happened</button>
+      <span class="note" id="g-summary"></span>
+    </div>
+  </section>
+</main>
+<footer>Synthetic data for training purposes only: no real bank, client or person is represented. Decision tree (CART) computed live in your browser; works offline. · Made by <a href="https://altaira.eu" rel="noopener">Altaïra</a> · <a href="https://github.com/FrtZi/banking-churn-demo" rel="noopener">Source code (MIT)</a></footer>
+
+<script>
+/*CORE*/
+</script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const pct = (x) => `${Math.round(x * 100)}%`;
+  const eur = (x) => `${x < 0 ? "−" : ""}€${Math.abs(Math.round(x)).toLocaleString("en-US")}`;
+  const data = Core.generate();
+  const train = data.filter((r) => r.cohort === 2024);
+  const test = data.filter((r) => r.cohort === 2025);
+  const rate = (rows) => rows.reduce((s, r) => s + r.churn, 0) / rows.length;
+  let tree = null;
+
+  // ---------- navigation
+  const steps = ["The data", "Train", "Rules", "Results", "Our 8 clients"];
+  steps.forEach((s, i) => {
+    const b = document.createElement("button");
+    b.innerHTML = `<b>${i + 1}</b>${s}`;
+    b.onclick = () => go(i);
+    $("nav").appendChild(b);
+  });
+  let cur = 0;
+  function go(i) {
+    cur = Math.max(0, Math.min(steps.length - 1, i));
+    document.querySelectorAll("section").forEach((s, k) => s.classList.toggle("on", k === cur));
+    document.querySelectorAll("nav button").forEach((b, k) => {
+      b.classList.toggle("on", k === cur);
+      b.toggleAttribute("aria-current", k === cur);
+    });
+    if (cur === 1) drawTree();
+    history.replaceState(null, "", `#${cur + 1}`);
+  }
+  document.addEventListener("keydown", (e) => {
+    if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
+    if (e.key === "ArrowRight" || e.key === "PageDown") go(cur + 1);
+    if (e.key === "ArrowLeft" || e.key === "PageUp") go(cur - 1);
+  });
+
+  // ---------- step 1: data
+  $("k-n").textContent = data.length;
+  $("k-train").textContent = train.length;
+  $("k-test").textContent = test.length;
+  $("k-rate").textContent = pct(rate(data));
+  const cols = [["id", "Client"], ["age", "Age"], ["tenure", "Client (yrs)"], ["products", "Products"],
+    ["assets", "Assets 12 m"], ["contact", "Last contact (m)"], ["advisor", "Advisor changed"],
+    ["complaint", "Complaint"], ["app", "App usage"], ["churn", "Outcome"]];
+  const show = (k, v) => k === "assets" ? `${v > 0 ? "+" : ""}${v}%` : k === "churn" ? (v ? "Left" : "Stayed")
+    : (k === "advisor" || k === "complaint") ? (v ? "yes" : "no") : v;
+  $("t-data").innerHTML = `<tr>${cols.map((c) => `<th>${c[1]}</th>`).join("")}</tr>` +
+    data.slice(0, 12).map((r) => `<tr>${cols.map(([k]) =>
+      `<td class="${k === "churn" && r.churn ? "left" : ""}">${show(k, r[k])}</td>`).join("")}</tr>`).join("") +
+    `<tr><td colspan="${cols.length}" class="note">… ${data.length - 12} more clients</td></tr>`;
+  $("csv").onclick = () => {
+    const keys = ["id", "cohort", "age", "tenure", "products", "assets", "contact", "advisor", "complaint", "app", "churn"];
+    const csv = [keys.join(",")].concat(data.map((r) => keys.map((k) => r[k]).join(","))).join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    a.download = "churn_demo_clients.csv";
+    a.click();
+  };
+
+  // ---------- step 2: tree
+  const color = (p) => {
+    const t = Math.min(1, p / 0.6);
+    const mix = (a, b, u) => a.map((v, i) => Math.round(v + (b[i] - v) * u));
+    const c = t < 0.5 ? mix([31, 122, 77], [181, 138, 26], t * 2) : mix([181, 138, 26], [181, 58, 58], (t - 0.5) * 2);
+    return `rgb(${c.join(",")})`;
+  };
+  // brighter variant for text on dark cards
+  const tcolor = (p) => (p >= 0.3 ? "#ff7b6e" : p >= 0.15 ? "#f5b942" : "#4fd99a");
+  function retrain() {
+    tree = Core.train(train, +$("depth").value);
+    $("depth-o").textContent = $("depth").value;
+    drawTree(); drawRules(); drawResults(); drawClients();
+  }
+  function drawTree() {
+    const svg = $("tree");
+    const W = 176, H = 64, GX = 16, GY = 64;
+    let leafX = 0, maxD = 0;
+    const layout = (n, d) => {
+      maxD = Math.max(maxD, d);
+      if (!n.f) { n.x = leafX; leafX += W + GX; }
+      else { layout(n.yes, d + 1); layout(n.no, d + 1); n.x = (n.yes.x + n.no.x) / 2; }
+      n.y = d * (H + GY);
+    };
+    layout(tree, 0);
+    const width = leafX - GX, height = (maxD + 1) * (H + GY) - GY;
+    svg.setAttribute("viewBox", `-10 -10 ${width + 20} ${height + 20}`);
+    let s = "";
+    const walk = (n) => {
+      if (n.f) {
+        for (const [child, yes] of [[n.yes, true], [n.no, false]]) {
+          const x1 = n.x + W / 2, y1 = n.y + H, x2 = child.x + W / 2, y2 = child.y;
+          s += `<path d="M${x1},${y1} C${x1},${y1 + GY / 2} ${x2},${y2 - GY / 2} ${x2},${y2}" fill="none" stroke="#5b7291" stroke-width="2"/>`;
+          const lx = (x1 + x2) / 2, ly = (y1 + y2) / 2 + 4;
+          const lab = Core.edgeLabel(n.f, n.t, yes);
+          s += `<rect x="${lx - lab.length * 3.6 - 6}" y="${ly - 14}" width="${lab.length * 7.2 + 12}" height="20" rx="10" fill="#0d1726" stroke="#33465f"/>`;
+          s += `<text x="${lx}" y="${ly}" fill="#cfe3f5" font-size="12" text-anchor="middle">${lab}</text>`;
+          walk(child);
+        }
+      }
+      const fill = color(n.p);
+      s += `<rect x="${n.x}" y="${n.y}" width="${W}" height="${H}" rx="10" fill="${fill}" stroke="${n.f ? "none" : "#ffffff"}" stroke-width="${n.f ? 0 : 1.5}"/>`;
+      if (n.f) {
+        s += `<text x="${n.x + W / 2}" y="${n.y + 26}" fill="#fff" font-size="15" font-weight="700" text-anchor="middle">${Core.nodeLabel(n.f)}</text>`;
+        s += `<text x="${n.x + W / 2}" y="${n.y + 48}" fill="#f1f5f9" font-size="12.5" text-anchor="middle">${n.n} clients · ${pct(n.p)} left</text>`;
+      } else {
+        s += `<text x="${n.x + W / 2}" y="${n.y + 30}" fill="#fff" font-size="22" font-weight="700" text-anchor="middle">${pct(n.p)} left</text>`;
+        s += `<text x="${n.x + W / 2}" y="${n.y + 51}" fill="#f1f5f9" font-size="12.5" text-anchor="middle">${n.n} clients</text>`;
+      }
+    };
+    walk(tree);
+    svg.innerHTML = s;
+    const L = Core.leaves(tree);
+    $("tree-note").textContent = `${L.length} groups of clients, from ${pct(Math.min(...L.map((l) => l.node.p)))} to ${pct(Math.max(...L.map((l) => l.node.p)))} of leavers. ` +
+      (+$("depth").value >= 5 ? "More questions = more detail… but also more risk of learning noise (overfitting)." : "Try more questions with the slider.");
+  }
+
+  // ---------- step 3: rules
+  function drawRules() {
+    const thr = +$("thr").value / 100;
+    const L = Core.leaves(tree).sort((a, b) => b.node.p - a.node.p);
+    $("rules").innerHTML = L.map((l) => `
+      <div class="rule ${l.node.p >= thr ? "flagged" : ""}">
+        <div class="p" style="color:${tcolor(l.node.p)}">${pct(l.node.p)}</div>
+        <div class="txt">${l.path.length ? Core.ruleText(l.path).join(" <span>AND</span> ") : "All clients"}
+          <div class="note">${l.node.n} clients · ${l.node.pos} left</div></div>
+        <div class="bar"><i style="width:${Math.max(3, l.node.p * 100 / 0.7)}%;background:${color(l.node.p)}"></i></div>
+      </div>`).join("");
+  }
+
+  // ---------- step 4: results
+  function drawResults() {
+    const thr = +$("thr").value / 100;
+    $("thr-o").textContent = `${$("thr").value}%`;
+    $("g-thr").textContent = `${$("thr").value}%`;
+    $("r-test").textContent = test.length;
+    const m = Core.evaluate(tree, test, thr);
+    for (const k of ["tp", "fp", "fn", "tn"]) $(`m-${k}`).textContent = m[k];
+    const calls = m.tp + m.fp, leavers = m.tp + m.fn;
+    $("r-calls").textContent = calls;
+    $("r-caught").textContent = `${m.tp} of the ${leavers} leavers caught · ${calls ? pct(m.tp / calls) : "–"} of calls are useful`;
+    $("r-acc").textContent = pct((m.tp + m.tn) / test.length);
+    $("r-base").innerHTML = `A “model” that says <b>nobody leaves</b> scores ${pct((m.tn + m.fp) / test.length)} without catching a single leaver. Accuracy alone is misleading.`;
+    const net = m.tp * ($("v-save").value / 100) * $("v-client").value - calls * $("v-call").value;
+    $("r-net").textContent = `${eur(net)} / yr`;
+    $("r-net").style.color = net >= 0 ? "var(--green)" : "var(--red)";
+    drawRules(); drawClients();
+  }
+
+  // ---------- step 5: game clients
+  function drawClients() {
+    const thr = +$("thr").value / 100;
+    let ok = 0;
+    $("clients").innerHTML = Core.GAME.map((c) => {
+      const p = Core.predict(tree, c), flag = p >= thr;
+      const [txt, col] = flag && c.churn ? ["Caught ✔", "var(--green)"] : flag ? ["False alarm", "var(--amber)"]
+        : c.churn ? ["Missed ✘", "var(--red)"] : ["Left alone ✔", "var(--green)"];
+      if (flag === !!c.churn) ok++;
+      return `<div class="client"><div class="top"><span>${c.id} · ${c.name}</span><span class="actual">${c.churn ? "LEFT" : "STAYED"}</span></div>
+        <div class="body"><div>Model risk</div><div class="risk" style="color:${tcolor(p)}">${pct(p)}</div>
+        <div>${flag ? "→ call this client" : "→ no action"}</div>
+        <div class="verdict" style="color:${col}">${txt}</div></div></div>`;
+    }).join("");
+    $("g-summary").textContent = "";
+    $("g-summary").dataset.ok = ok;
+  }
+  $("reveal").onclick = () => {
+    const box = $("clients");
+    const hidden = box.classList.toggle("hidden-reveal");
+    $("reveal").textContent = hidden ? "Reveal what really happened" : "Hide the answers";
+    $("g-summary").textContent = hidden ? "" : `The model got ${$("g-summary").dataset.ok} of 8 right. How did the room do?`;
+  };
+
+  $("depth").oninput = retrain;
+  $("thr").oninput = drawResults;
+  for (const id of ["v-client", "v-call", "v-save"]) $(id).oninput = drawResults;
+  retrain();
+  go((parseInt(location.hash.slice(1), 10) || 1) - 1);
+})();
+</script>
+</body>
+</html>

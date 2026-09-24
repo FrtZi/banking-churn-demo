@@ -1,0 +1,14 @@
+{
+  "name": "banking-churn-demo",
+  "version": "1.0.0",
+  "description": "Live, dependency-free browser demo of a churn decision tree for banking data-literacy training.",
+  "private": true,
+  "license": "MIT",
+  "author": "Altaïra (https://altaira.eu)",
+  "repository": "github:FrtZi/banking-churn-demo",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test"
+  }
+}
