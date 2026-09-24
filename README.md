@@ -5,6 +5,8 @@
 
 **▶ Live demo: [frtzi.github.io/banking-churn-demo](https://frtzi.github.io/banking-churn-demo/)**
 
+> **For educational purposes only.** This demo teaches data-literacy concepts with synthetic data. It is not a production model, not financial, legal or model-validation advice, and its figures say nothing about any real bank or client.
+
 An interactive page that shows business people how a prediction model works, without any code.
 A decision tree learns live which private-banking clients are likely to leave. The page then shows
 the rules it found, the mistakes it makes, and what those mistakes cost.
@@ -49,6 +51,10 @@ tests/              unit tests (Node's built-in test runner)
 ```
 
 Every push to `main` runs the tests and deploys the page to GitHub Pages.
+
+## Terminology
+
+Technical terms are underlined with dots: hover, focus or tap shows a short definition, and a click opens the matching entry of the [Google Machine Learning Glossary](https://developers.google.com/machine-learning/glossary), the single reference used throughout.
 
 ## About the data
 

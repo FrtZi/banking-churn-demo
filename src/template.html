@@ -102,7 +102,10 @@
   .kv { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
   .kv b { font-variant-numeric: tabular-nums; }
   .kv:last-child { border-bottom: 0; }
-  .term { border-bottom: 1px dotted currentColor; cursor: help; }
+  .term { border-bottom: 1px dotted currentColor; cursor: help; color: inherit; text-decoration: none; }
+  a.term { cursor: pointer; }
+  a.term:hover { color: var(--cyan); }
+  #tip .more { display: block; margin-top: 6px; font-size: 12px; color: #0b4f8a; font-weight: 600; }
   .term:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; border-radius: 2px; }
   #tip {
     position: fixed; z-index: 10; max-width: 320px; padding: 8px 12px; border-radius: 8px;
@@ -416,7 +419,7 @@
 </main>
 <div id="tip" role="tooltip" aria-hidden="true"></div>
 <div class="sr-only" aria-live="polite" id="sr-status"></div>
-<footer>Synthetic data for training purposes only: no real bank, client or person is represented. Decision tree (CART) computed live in your browser; works offline. · Made by <a href="https://altaira.eu" rel="noopener">Altaïra</a> · <a href="https://github.com/FrtZi/banking-churn-demo" rel="noopener">Source code (MIT)</a></footer>
+<footer>For educational purposes only. Synthetic data: no real bank, client or person is represented. Definitions link to the Google Machine Learning Glossary. Decision tree (CART) computed live in your browser; works offline. · Made by <a href="https://altaira.eu" rel="noopener">Altaïra</a> · <a href="https://github.com/FrtZi/banking-churn-demo" rel="noopener">Source code (MIT)</a></footer>
 
 <script>
 /*CORE*/
@@ -453,15 +456,27 @@
     psi: ["Population Stability Index (PSI)", "How much a signal's distribution moved since the model was trained. Below 0.10 stable, 0.10–0.25 watch, above 0.25 alert."],
     inference: ["Inference", "Using a trained model to score new clients. The model no longer learns; it only applies what it learned."],
   };
-  const term = (key, text) => `<span class="term" tabindex="0" data-term="${key}">${text}</span>`;
+  // "Learn more" always points to one reference: Google's Machine Learning Glossary (anchors checked)
+  const GLOSSARY_URL = "https://developers.google.com/machine-learning/glossary";
+  const ANCHORS = { split: "test-set", tree: "decision-tree", depth: "decision-tree", mingroup: "leaf", anomaly: "anomaly-detection", iforest: "anomaly-detection", auc: "auc-area-under-the-roc-curve", cv: "k-fold-cross-validation", overfitting: "overfitting", certainty: "overfitting", sensitivity: "recall", specificity: "false-positive-rate-fpr", confusion: "confusion-matrix", falsealarm: "false-positive-fp", missed: "false-negative-fn", roc: "roc-receiver-operating-characteristic-curve", threshold: "classification-threshold", elbow: "roc-receiver-operating-characteristic-curve", accuracy: "accuracy", drift: "training-serving-skew", psi: "training-serving-skew", inference: "inference" };
+  const termUrl = (key) => (ANCHORS[key] ? `${GLOSSARY_URL}#${ANCHORS[key]}` : null);
+  // a term with a reference is a real link (Enter / click opens it in a new tab); others stay focusable text
+  const term = (key, text) => termUrl(key)
+    ? `<a class="term" data-term="${key}" href="${termUrl(key)}" target="_blank" rel="noopener">${text}<span class="sr-only"> (glossary, opens in a new tab)</span></a>`
+    : `<span class="term" tabindex="0" data-term="${key}">${text}</span>`;
+  // terms written directly in the HTML become links too
+  document.querySelectorAll("span.term[data-term]").forEach((el) => {
+    if (termUrl(el.dataset.term)) el.outerHTML = term(el.dataset.term, el.innerHTML);
+  });
   (() => {
     const tip = $("tip");
-    let owner = null;
+    let owner = null, lastPointer = "mouse";
     const show = (el) => {
       const g = GLOSSARY[el.dataset.term];
       if (!g) return;
       owner = el;
-      tip.innerHTML = `<b>${g[0]}</b>${g[1]}`;
+      tip.innerHTML = `<b>${g[0]}</b>${g[1]}` + (el.tagName === "A"
+        ? `<span class="more">${lastPointer === "touch" ? "Tap again" : "Click"} for more: Google Machine Learning Glossary ↗</span>` : "");
       tip.setAttribute("aria-hidden", "false");
       el.setAttribute("aria-describedby", "tip");
       const r = el.getBoundingClientRect();
@@ -480,7 +495,16 @@
     document.addEventListener("mouseout", (e) => { if (termOf(e)) hide(); });
     document.addEventListener("focusin", (e) => { const el = termOf(e); if (el) show(el); else hide(); });
     document.addEventListener("focusout", (e) => { if (termOf(e)) hide(); });
-    document.addEventListener("click", (e) => { const el = termOf(e); if (el) { el === owner ? hide() : show(el); } else hide(); });
+    document.addEventListener("pointerdown", (e) => { lastPointer = e.pointerType; }, true);
+    document.addEventListener("click", (e) => {
+      const el = termOf(e);
+      if (!el) return hide();
+      if (el.tagName === "A") {
+        if (lastPointer === "touch" && el !== owner) { e.preventDefault(); show(el); }
+        return; // mouse click, keyboard Enter or second tap: open the glossary
+      }
+      el === owner ? hide() : show(el);
+    });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape") hide(); });
     addEventListener("scroll", hide, { passive: true });
   })();
