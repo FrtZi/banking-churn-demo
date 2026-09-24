@@ -128,3 +128,12 @@ test("tiny groups make overfitting obvious: big gap between learned and hidden c
   const deep = Core.depthSearch(train, 2).curve.at(-1);
   assert.ok(deep.learned - deep.hidden > 0.2, `gap ${deep.learned - deep.hidden}`);
 });
+
+test("inference panel clients: same risk with a sensible tree, opposite certainties when overfitted", () => {
+  const good = Core.train(train, 3, 12), over = Core.train(train, 8, 2);
+  const c = (id) => test2025.find((r) => r.id === id);
+  assert.ok(["C422", "C401", "C480"].every((id) => c(id)), "picked clients belong to the unseen 2025 set");
+  assert.equal(Core.predict(good, c("C422")), Core.predict(good, c("C401")));
+  assert.deepEqual([Core.predict(over, c("C422")), Core.predict(over, c("C401"))], [0, 1]);
+  assert.ok(!Core.GAME.some((g) => ["C422", "C401", "C480"].includes(g.id)), "no overlap with the game's 8 clients");
+});

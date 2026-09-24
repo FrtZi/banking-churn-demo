@@ -252,7 +252,7 @@
         </div>
         <div class="card">
           <h3>What it predicts for new clients</h3>
-          <p class="note" style="margin:0 0 4px">Three clients from the game, who all left:</p>
+          <p class="note" style="margin:0 0 4px">Three new 2025 clients the model has never seen (their outcome is revealed only in aggregate, at step 5):</p>
           <div id="inference"></div>
           <p class="note" id="certainty" style="margin:8px 0 0"></p>
         </div>
@@ -483,11 +483,16 @@
     } else if (!searching) $("vc-desc").textContent = "";
   }
 
+  // three unseen 2025 clients (not the game's 8, so step 6 is not spoiled): #422 and #401 look alike
+  // and share the same risk with a sensible tree, but an overfitted tree sends them to 0% and 100%
+  const INFERENCE_IDS = ["C422", "C401", "C480"];
+  const signals = (c) => [c.complaint ? "complaint" : "", `app ${c.app}`, `assets ${c.assets > 0 ? "+" : ""}${c.assets}%`,
+    `contact ${c.contact} m`, c.advisor ? "advisor changed" : ""].filter(Boolean).join(" · ");
   function drawInference() {
-    const picks = ["A", "F", "D"].map((id) => Core.GAME.find((g) => g.id === id));
+    const picks = INFERENCE_IDS.map((id) => test.find((r) => r.id === id));
     $("inference").innerHTML = picks.map((c) => {
       const p = Core.predict(tree, c);
-      return `<div class="inf-row"><span>${c.name}</span><b>${pct(p)}</b><div class="bar" aria-hidden="true"><i style="width:${Math.max(3, p * 100)}%;background:${color(p)}"></i></div></div>`;
+      return `<div class="inf-row"><span>Client #${c.id.slice(1)}<br><span class="note">${signals(c)}</span></span><b>${pct(p)}</b><div class="bar" aria-hidden="true"><i style="width:${Math.max(3, p * 100)}%;background:${color(p)}"></i></div></div>`;
     }).join("");
     const extreme = test.filter((r) => { const p = Core.predict(tree, r); return p === 0 || p === 1; }).length;
     $("certainty").innerHTML = extreme
