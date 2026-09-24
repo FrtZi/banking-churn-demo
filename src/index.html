@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Churn Model Demo</title>
+    <meta
+      name="description"
+      content="Interactive demo: a decision tree learns which private-banking clients are likely to leave. Synthetic data, runs in the browser, built for data-literacy training."
+    />
+    <meta name="author" content="Altaïra" />
+    <meta property="og:title" content="Let the machine find the rules · Churn Model Demo" />
+    <meta
+      property="og:description"
+      content="A decision tree trained live on synthetic banking clients: rules, errors and business trade-offs, explained for managers."
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230d1726'/%3E%3Ccircle cx='26' cy='32' r='13' fill='%23ffd9a0'/%3E%3Ccircle cx='36' cy='32' r='13' fill='%230d1726' stroke='%23ffb347' stroke-width='2'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="styles/index.css" />
+  </head>
+  <body>
+    <p id="dev-hint" class="dev-hint">
+      This is the source page: run <code>npm run dev</code> and open the address it prints, or open
+      <code>dist/index.html</code> after <code>npm run build</code>.
+    </p>
+    <header>
+      <h1>Let the machine find the rules</h1>
+      <span class="sub">
+        <span class="term" tabindex="0" data-term="churn">Churn</span> prediction · private banking ·
+        <span class="term" tabindex="0" data-term="synthetic">synthetic data</span>
+      </span>
+    </header>
+    <nav id="nav" aria-label="Demo steps"></nav>
+
+    <main>
+      <!-- @include sections/data.html -->
+      <!-- @include sections/room.html -->
+      <!-- @include sections/train.html -->
+      <!-- @include sections/rules.html -->
+      <!-- @include sections/results.html -->
+      <!-- @include sections/clients.html -->
+      <!-- @include sections/monitor.html -->
+    </main>
+
+    <div id="tip" role="tooltip" aria-hidden="true"></div>
+    <div class="sr-only" aria-live="polite" id="sr-status"></div>
+    <footer>
+      For educational purposes only. Synthetic data: no real bank, client or person is represented. Definitions link to
+      the Google Machine Learning Glossary. Decision tree (CART) computed live in your browser; works offline. · Made by
+      <a href="https://altaira.eu" rel="noopener">Altaïra</a> ·
+      <a href="https://github.com/FrtZi/banking-churn-demo" rel="noopener">Source code (MIT)</a>
+    </footer>
+
+    <script type="module" src="main.js"></script>
+  </body>
+</html>

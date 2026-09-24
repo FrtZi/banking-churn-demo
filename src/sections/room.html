@@ -1,0 +1,26 @@
+<!-- 2 · YOUR RULES (captured before the machine, to avoid anchoring on its rules) -->
+<section id="s-room">
+  <h2 tabindex="-1">2 · Your rules</h2>
+  <p class="lead">
+    Before the machine speaks: write down the rules the room used in the game. They are scored later, on the same unseen
+    clients as the machine.
+  </p>
+  <div class="row">
+    <div class="card room-card col-wide">
+      <h3 class="card-title">The room's rules</h3>
+      <p class="note m-0" id="room-help"></p>
+      <div id="room-rules"></div>
+      <div class="pick">
+        <button type="button" class="btn ghost" id="room-example">Load an example</button>
+        <button type="button" class="btn ghost" id="room-clear">Clear</button>
+      </div>
+      <label for="room-missing" class="note">Signals the room used that are <b>not</b> in the data</label>
+      <textarea id="room-missing" placeholder="e.g. competitor offer, family event, moving abroad"></textarea>
+    </div>
+    <div class="card col">
+      <h3 class="card-title mb-6">Signals in the data</h3>
+      <table id="t-signals"></table>
+      <p class="note">No score yet: the room's rules are revealed next to the machine's at step 4.</p>
+    </div>
+  </div>
+</section>

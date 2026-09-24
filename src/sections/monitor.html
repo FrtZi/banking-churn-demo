@@ -1,0 +1,31 @@
+<!-- 7 · MONITOR (production: new clients arrive, outcomes are only known months later) -->
+<section id="s-monitor">
+  <h2 tabindex="-1">7 · Monitor new clients</h2>
+  <p class="lead">
+    The model is live (<span class="term" tabindex="0" data-term="inference">inference</span>).
+    <span id="mon-n"></span> new clients arrive in <span data-year="production"></span>, and whether they leave will
+    only be known months later. Until then, we watch the data going in.
+  </p>
+  <div class="row">
+    <div class="card col">
+      <h3 class="card-title">Break the incoming data</h3>
+      <fieldset class="checks stacked mt-4" id="inf-issues">
+        <legend class="sr-only">Data quality problems in production</legend>
+      </fieldset>
+      <p class="note m-0 mt-10">The model does not change. Only the data it receives does.</p>
+    </div>
+    <div class="card col-monitor">
+      <h3 class="card-title">Data <span class="term" tabindex="0" data-term="drift">drift</span> monitor</h3>
+      <p class="note m-0 mb-6" id="psi-help"></p>
+      <table class="mon" id="t-psi"></table>
+    </div>
+    <div class="card col">
+      <h3 class="card-title">What the model does</h3>
+      <p class="note m-0 mb-4">Known today</p>
+      <div id="mon-now"></div>
+      <p class="note m-0 mt-12 mb-4">Known only months later, when outcomes arrive</p>
+      <div id="mon-later"></div>
+      <p class="note m-0 mt-10" id="mon-msg" aria-live="polite"></p>
+    </div>
+  </div>
+</section>

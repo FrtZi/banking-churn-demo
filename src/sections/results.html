@@ -1,0 +1,116 @@
+<!-- 5 · RESULTS -->
+<section id="s-results">
+  <h2 tabindex="-1">5 · How good is it on new clients?</h2>
+  <p class="lead">
+    Tested on the <span id="r-test"></span> clients of <span data-year="test"></span> the model has never seen.
+  </p>
+  <div class="ctrl">
+    <label for="thr">Call a client when the risk is at least</label>
+    <input type="range" id="thr" />
+    <output id="thr-o" for="thr"></output>
+  </div>
+  <div class="row">
+    <div class="col-lg">
+      <p class="note m-0 mb-8">
+        <span class="term" tabindex="0" data-term="confusion">Confusion matrix</span>: what the model said × what really
+        happened.
+      </p>
+      <div class="matrix">
+        <div></div>
+        <div class="h">Really <b>left</b></div>
+        <div class="h">Really <b>stayed</b></div>
+        <div class="rh">Model says<br /><b>call</b></div>
+        <div class="cell good">
+          <span class="sr-only">Model says call, client really left: </span>
+          <div class="n" id="m-tp"></div>
+          <div class="t"><span class="ico-good" aria-hidden="true">✔</span> Caught</div>
+          <div class="d">leaver flagged in time</div>
+        </div>
+        <div class="cell warn">
+          <span class="sr-only">Model says call, client really stayed: </span>
+          <div class="n" id="m-fp"></div>
+          <div class="t">
+            <span class="ico-warning" aria-hidden="true">⚠</span>
+            <span class="term" tabindex="0" data-term="falsealarm">False alarm</span>
+          </div>
+          <div class="d">one call for nothing</div>
+        </div>
+        <div class="rh">Model says<br /><b>fine</b></div>
+        <div class="cell bad">
+          <span class="sr-only">Model says fine, client really left: </span>
+          <div class="n" id="m-fn"></div>
+          <div class="t">
+            <span class="ico-critical" aria-hidden="true">✘</span>
+            <span class="term" tabindex="0" data-term="missed">Missed</span>
+          </div>
+          <div class="d">leaver not flagged</div>
+        </div>
+        <div class="cell good">
+          <span class="sr-only">Model says fine, client really stayed: </span>
+          <div class="n" id="m-tn"></div>
+          <div class="t"><span class="ico-good" aria-hidden="true">✔</span> Left alone</div>
+          <div class="d">loyal, not bothered</div>
+        </div>
+      </div>
+      <div class="rates">
+        <div class="card">
+          <div class="note"><span class="term" tabindex="0" data-term="sensitivity">Sensitivity</span></div>
+          <div class="big" id="r-sens"></div>
+          <div class="note">of leavers are caught</div>
+        </div>
+        <div class="card">
+          <div class="note"><span class="term" tabindex="0" data-term="specificity">Specificity</span></div>
+          <div class="big" id="r-spec"></div>
+          <div class="note">of loyal clients are left alone</div>
+        </div>
+      </div>
+    </div>
+    <div class="card col-md">
+      <h3 class="card-title">How is the threshold chosen?</h3>
+      <p class="note m-0 mb-6">
+        This <span class="term" tabindex="0" data-term="roc">ROC curve</span> shows each possible
+        <span class="term" tabindex="0" data-term="threshold">threshold</span> as a dot. Top-left would be perfect; the
+        diagonal is a coin flip.
+      </p>
+      <svg id="roc" viewBox="0 0 400 330" role="img" aria-labelledby="roc-title" aria-describedby="roc-desc"></svg>
+      <span class="sr-only" id="roc-title"
+        >ROC curve: share of leavers caught against false-alarm rate, one point per threshold.</span
+      >
+      <div class="pick" role="group" aria-label="Choose the threshold automatically">
+        <button type="button" class="btn" id="pick-elbow">Balanced (the elbow)</button>
+        <button type="button" class="btn ghost" id="pick-value">Best € value</button>
+      </div>
+      <p class="note m-0" id="roc-desc"></p>
+    </div>
+    <div class="side">
+      <div class="card">
+        <div class="note">Calls to make</div>
+        <div class="big" id="r-calls"></div>
+        <div class="note" id="r-caught"></div>
+      </div>
+      <div class="card alert">
+        <div class="note"><span class="term" tabindex="0" data-term="accuracy">Accuracy</span></div>
+        <div class="big" id="r-acc"></div>
+        <div class="note" id="r-base"></div>
+      </div>
+      <div class="card">
+        <div class="note mb-8">Business view (adjust live)</div>
+        <div class="ctrl m-0 mb-6">
+          <label for="v-client">Revenue lost per leaver, €/yr</label><input type="number" id="v-client" min="0" />
+        </div>
+        <div class="ctrl m-0 mb-6">
+          <label for="v-call">Cost of one retention call, €</label><input type="number" id="v-call" min="0" />
+        </div>
+        <div class="ctrl m-0">
+          <label for="v-save">Leavers saved by a call, %</label><input type="number" id="v-save" min="0" max="100" />
+        </div>
+        <div class="mt-10">
+          <span class="term" tabindex="0" data-term="netvalue">Net value</span> of the campaign:<br /><span
+            class="big"
+            id="r-net"
+          ></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

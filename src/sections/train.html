@@ -1,0 +1,66 @@
+<!-- 3 · TRAIN -->
+<section id="s-train">
+  <h2 tabindex="-1">3 · Train a decision tree</h2>
+  <p class="lead">
+    The <span class="term" tabindex="0" data-term="tree">decision tree</span> looks for the question that best separates
+    leavers from loyal clients, then repeats inside each group.
+  </p>
+  <div class="ctrl">
+    <label for="depth"
+      >How many questions in a row? (<span class="term" tabindex="0" data-term="depth">depth</span>)</label
+    >
+    <input type="range" id="depth" />
+    <output id="depth-o" for="depth"></output>
+    <label for="minpct"
+      >Each <span class="term" tabindex="0" data-term="mingroup">group</span> must cover at least</label
+    >
+    <input type="range" id="minpct" />
+    <output id="minpct-o" for="minpct"></output>
+    <button type="button" class="btn" id="search">Find the best level</button>
+  </div>
+  <div class="train-grid">
+    <div class="card col-wide">
+      <svg id="tree" role="img" aria-labelledby="tree-title" aria-describedby="tree-note"></svg>
+      <span class="sr-only" id="tree-title">Decision tree. The same rules are listed as text in step 4.</span>
+      <div class="legend">
+        <span>Share of clients who left:</span><span>low</span><span class="grad"></span><span>high</span>
+      </div>
+      <p class="note" id="tree-note"></p>
+      <p class="note mb-0">
+        <b>Why a minimum group size?</b> A rule that covers 2 clients is an anecdote, not a pattern.
+        <span class="term" tabindex="0" data-term="anomaly">Anomaly detection</span> (e.g.
+        <span class="term" tabindex="0" data-term="iforest">Isolation Forest</span>) does the opposite: it keeps
+        splitting until one client is isolated, and the fastest isolated are the most unusual.
+      </p>
+    </div>
+    <div class="train-side">
+      <div class="card">
+        <h3 class="card-title">How is the best level found?</h3>
+        <p class="note m-0 mb-4">
+          <span class="term" tabindex="0" data-term="auc">Score</span> = how well the model ranks leavers above loyal
+          clients (50% = coin flip).
+        </p>
+        <div>
+          <span class="key"><i class="learned"></i>Clients it learned from</span>
+          <span class="key"><i class="hidden"></i>Hidden clients</span>
+        </div>
+        <svg id="vc" viewBox="0 0 400 250" role="img" aria-labelledby="vc-title" aria-describedby="vc-desc"></svg>
+        <span class="sr-only" id="vc-title"
+          >Score by number of questions, on learned clients and on hidden clients.</span
+        >
+        <div class="folds" id="folds" aria-hidden="true"></div>
+        <p class="note m-0" id="cv-help"></p>
+        <p class="note m-0 mt-6" id="vc-desc" aria-live="polite"></p>
+      </div>
+      <div class="card">
+        <h3 class="card-title">What it predicts for new clients</h3>
+        <p class="note m-0 mb-4">
+          Three new <span data-year="test"></span> clients the model has never seen (their outcome is revealed only in
+          aggregate, at step 5):
+        </p>
+        <div id="inference"></div>
+        <p class="note m-0 mt-8" id="certainty"></p>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,53 @@
+<!-- 1 · DATA -->
+<section id="s-data">
+  <h2 tabindex="-1">1 · The data</h2>
+  <p class="lead">
+    <span id="k-lead"></span> fictitious clients with the same signals as the game. We know who left, so the machine can
+    learn from the past.
+  </p>
+  <div class="card block">
+    <div class="ctrl m-0">
+      <label for="gen-n">Number of clients</label>
+      <select id="gen-n" class="gen-select"></select>
+      <label for="gen-split"><span class="term" tabindex="0" data-term="split">Learn / test split</span></label>
+      <input type="range" id="gen-split" />
+      <output id="gen-split-o" for="gen-split"></output>
+      <button type="button" class="btn ghost" id="gen-new">New random sample</button>
+      <button type="button" class="btn ghost" id="gen-reset">Reset to training default</button>
+    </div>
+    <p class="note m-0 mt-8" id="gen-note" aria-live="polite"></p>
+  </div>
+  <details class="card block disclosure" id="quality-box">
+    <summary>Add bad data quality to the history the model learns from</summary>
+    <fieldset class="checks" id="train-issues">
+      <legend class="sr-only">Data quality problems in the learning data</legend>
+    </fieldset>
+    <p class="note m-0 mt-8">
+      Applied to the <span data-year="learn"></span> clients only. The <span data-year="test"></span> test clients stay
+      clean, so step 5 shows the true impact on the model.
+    </p>
+  </details>
+  <div class="row block">
+    <div class="card kpi">
+      <div class="v" id="k-n"></div>
+      <div class="l">clients</div>
+    </div>
+    <div class="card kpi">
+      <div class="v" id="k-train"></div>
+      <div class="l">to <b>learn</b> from (<span data-year="learn"></span> outcomes)</div>
+    </div>
+    <div class="card kpi">
+      <div class="v" id="k-test"></div>
+      <div class="l">kept aside to <b>test</b> (<span data-year="test"></span>, never seen)</div>
+    </div>
+    <div class="card kpi">
+      <div class="v" id="k-rate"></div>
+      <div class="l">of clients left</div>
+    </div>
+  </div>
+  <div class="card scroll"><table id="t-data"></table></div>
+  <p class="note mt-12">
+    What the data cannot see: competitor offers, house purchases, family events… exactly like in real life.
+    <button type="button" class="btn ghost" id="csv">Download CSV</button>
+  </p>
+</section>
