@@ -172,3 +172,21 @@ test("a broken complaint feed silently hurts the model in production", () => {
   const clean = Core.evaluate(model, batch, 0.3), broken = Core.evaluate(model, Core.degradeBatch(batch, ["complaintsStop"]), 0.3);
   assert.ok(broken.tp < clean.tp / 2, `${broken.tp} vs ${clean.tp}`);
 });
+
+test("data-quality parameters: defaults match the array form, higher values do more damage", () => {
+  assert.deepEqual(Core.degradeTraining(train, ["labelNoise"]), Core.degradeTraining(train, { labelNoise: 35 }));
+  const leavers = (rows) => rows.filter((r) => r.churn).length;
+  assert.ok(leavers(Core.degradeTraining(train, { labelNoise: 80 })) < leavers(Core.degradeTraining(train, { labelNoise: 20 })));
+  assert.ok(Core.degradeTraining(train, { sampleBias: 40 }).every((r) => r.age < 40));
+  const batch = Core.newBatch();
+  const hit = (v) => Core.degradeBatch(batch, { appBroken: v }).filter((r, i) => r.app === "none" && batch[i].app !== "none").length;
+  assert.ok(hit(30) > 0 && hit(30) < hit(100));
+  const complaint = Core.FEATURES.find((f) => f.key === "complaint");
+  assert.ok(Core.psi(train, Core.degradeBatch(batch, { complaintsStop: 30 }), complaint) <
+    Core.psi(train, Core.degradeBatch(batch, { complaintsStop: 100 }), complaint), "a partial outage drifts less");
+});
+
+test("the training default lives in one place", () => {
+  assert.deepEqual(Core.DEFAULTS, { n: 500, seed: 101, learnShare: 0.8 });
+  assert.deepEqual(Core.generate(), Core.generate(Core.DEFAULTS.n, Core.DEFAULTS.seed, Core.DEFAULTS.learnShare));
+});

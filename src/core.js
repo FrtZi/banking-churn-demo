@@ -35,7 +35,9 @@ const Core = (() => {
   // ---------- synthetic private-banking clients
   // n clients; the first round(n * learnShare) are 2024 (to learn from), the rest 2025 (kept to test).
   // Rows are drawn in order from the seeded stream, so a larger n keeps the same first clients.
-  function generate(n = 500, seed = 101, learnShare = 0.8) {
+  // The training default: every figure in the speaker notes assumes these settings.
+  const DEFAULTS = { n: 500, seed: 101, learnShare: 0.8 };
+  function generate(n = DEFAULTS.n, seed = DEFAULTS.seed, learnShare = DEFAULTS.learnShare) {
     const nLearn = Math.round(n * learnShare);
     const r = rng(seed);
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -264,34 +266,49 @@ const Core = (() => {
   // ---------- data quality
   // Problems in the historical data the model learns from (applied to the 2024 clients only;
   // the 2025 test clients stay clean so the results step shows the true impact).
+  // Each issue has one parameter (param.def is the default); `issues` maps an issue key to its value,
+  // or is an array of keys to use the defaults.
   const TRAINING_ISSUES = {
-    missingContact: { label: "Missing last-contact dates, filled with 0 by the system (30% of clients)",
-      apply: (rows, r) => rows.map((x) => (r() < 0.3 ? { ...x, contact: 0 } : x)) },
-    complaintsLost: { label: "Complaints not logged for part of the year (60% of complaints lost)",
-      apply: (rows, r) => rows.map((x) => (x.complaint && r() < 0.6 ? { ...x, complaint: 0 } : x)) },
-    labelNoise: { label: "Wrong outcome: account closures recorded as \"stayed\" (35% of leavers)",
-      apply: (rows, r) => rows.map((x) => (x.churn && r() < 0.35 ? { ...x, churn: 0 } : x)) },
-    sampleBias: { label: "Biased sample: history only kept for clients under 50",
-      apply: (rows) => rows.filter((x) => x.age < 50) },
+    missingContact: { label: "Missing last-contact dates, filled with 0 by the system",
+      param: { name: "clients affected", min: 5, max: 90, step: 5, def: 30, unit: "%" },
+      apply: (rows, r, v) => rows.map((x) => (r() < v / 100 ? { ...x, contact: 0 } : x)) },
+    complaintsLost: { label: "Complaints not logged for part of the year",
+      param: { name: "complaints lost", min: 10, max: 100, step: 10, def: 60, unit: "%" },
+      apply: (rows, r, v) => rows.map((x) => (x.complaint && r() < v / 100 ? { ...x, complaint: 0 } : x)) },
+    labelNoise: { label: "Wrong outcome: account closures recorded as \"stayed\"",
+      param: { name: "leavers mislabelled", min: 5, max: 90, step: 5, def: 35, unit: "%" },
+      apply: (rows, r, v) => rows.map((x) => (x.churn && r() < v / 100 ? { ...x, churn: 0 } : x)) },
+    sampleBias: { label: "Biased sample: history only kept for younger clients",
+      param: { name: "kept if under", min: 30, max: 75, step: 5, def: 50, unit: " years" },
+      apply: (rows, r, v) => rows.filter((x) => x.age < v) },
   };
+  const asParams = (issues, catalog) => Array.isArray(issues)
+    ? Object.fromEntries(issues.map((k) => [k, catalog[k].param.def])) : issues;
   function degradeTraining(rows, issues, seed = 7) {
-    const r = rng(seed);
-    return Object.keys(TRAINING_ISSUES).reduce((out, k) => (issues.includes(k) ? TRAINING_ISSUES[k].apply(out, r) : out), rows);
+    const r = rng(seed), on = asParams(issues, TRAINING_ISSUES);
+    return Object.keys(TRAINING_ISSUES).reduce((out, k) => (k in on ? TRAINING_ISSUES[k].apply(out, r, on[k]) : out), rows);
   }
 
-  // Problems in the data flowing into a model already in production.
+  // Problems in the data flowing into a model already in production; the parameter is the share of
+  // new clients hit (100% = the whole feed is broken, less = a partial outage, harder to spot).
+  const share = { name: "new clients affected", min: 10, max: 100, step: 10, def: 100, unit: "%" };
   const INFERENCE_ISSUES = {
-    complaintsStop: { label: "Complaint feed broken: no complaint arrives any more",
+    complaintsStop: { label: "Complaint feed broken: complaints no longer arrive", param: share,
       apply: (x) => ({ ...x, complaint: 0 }) },
-    contactZero: { label: "CRM migration: last-contact date defaults to 0",
+    contactZero: { label: "CRM migration: last-contact date defaults to 0", param: share,
       apply: (x) => ({ ...x, contact: 0 }) },
-    appBroken: { label: "App tracking stopped: every client shows \"none\"",
+    appBroken: { label: "App tracking stopped: clients show \"none\"", param: share,
       apply: (x) => ({ ...x, app: "none" }) },
-    assetsRatio: { label: "Format change: assets delivered as a ratio (-0.2) instead of % (-20)",
+    assetsRatio: { label: "Format change: assets delivered as a ratio (-0.2) instead of % (-20)", param: share,
       apply: (x) => ({ ...x, assets: Math.round(x.assets) / 100 }) },
   };
-  const degradeBatch = (rows, issues) =>
-    rows.map((x) => Object.keys(INFERENCE_ISSUES).reduce((y, k) => (issues.includes(k) ? INFERENCE_ISSUES[k].apply(y) : y), x));
+  function degradeBatch(rows, issues, seed = 11) {
+    const r = rng(seed), on = asParams(issues, INFERENCE_ISSUES);
+    return rows.map((x) => Object.keys(INFERENCE_ISSUES).reduce((y, k) => {
+      const hit = r() < (on[k] ?? 0) / 100; // one draw per client and issue, so results are reproducible
+      return k in on && hit ? INFERENCE_ISSUES[k].apply(y) : y;
+    }, x));
+  }
 
   // a batch of new clients arriving after go-live (their outcome is only known months later)
   const newBatch = (n = 1000, seed = 2026) =>
@@ -314,6 +331,6 @@ const Core = (() => {
     }, 0);
   }
 
-  return { TRAINING_ISSUES, degradeTraining, INFERENCE_ISSUES, degradeBatch, newBatch, psi, score, crossValidate, depthSearch, matches, evaluateRules, ROOM_EXAMPLE, roc, auc, rng, generate, GAME, FEATURES, train, predict, leaves, ruleText, evaluate, edgeLabel, nodeLabel, APP };
+  return { DEFAULTS, TRAINING_ISSUES, degradeTraining, INFERENCE_ISSUES, degradeBatch, newBatch, psi, score, crossValidate, depthSearch, matches, evaluateRules, ROOM_EXAMPLE, roc, auc, rng, generate, GAME, FEATURES, train, predict, leaves, ruleText, evaluate, edgeLabel, nodeLabel, APP };
 })();
 if (typeof module !== "undefined") module.exports = Core;
