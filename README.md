@@ -19,15 +19,16 @@ as the follow-up to a paper game in which participants play the model themselves
 | Step | Content | Key message |
 |---|---|---|
 | 1 · The data | 500 synthetic clients: 400 to learn from, 100 kept aside to test | A model learns from the past, and some facts never reach the data |
-| 2 · Train | The decision tree, with a slider for how many questions it may ask | More questions give more detail, but also more risk of learning noise |
-| 3 · Rules | Each branch written as a plain-English rule, next to a builder for the room's own rules, scored live against the machine on the same unseen clients | A good model can be read and challenged by the business; the most intuitive signal is not always the useful one |
-| 4 · Results | Confusion matrix, sensitivity and specificity on unseen clients; a ROC curve with the “elbow” and the best-€ threshold; a business view in € | Accuracy alone is misleading; the threshold can be chosen automatically, but the right criterion is a business decision |
-| 5 · Our 8 clients | The model's verdict on the 8 clients of the paper game, then the reveal | Model + human judgement beats either alone |
+| 2 · Your rules | The room writes the rules it used in the paper game, before seeing anything from the machine (no score shown yet) | Capturing human rules first avoids anchoring on the machine's answer |
+| 3 · Train | The decision tree, with a slider for how many questions it may ask | More questions give more detail, but also more risk of learning noise |
+| 4 · Rules | Each branch as a plain-English rule, next to the room's rules, now scored against the machine on the same unseen clients | A good model can be read and challenged; the most intuitive signal is not always the useful one |
+| 5 · Results | Confusion matrix, sensitivity and specificity on unseen clients; a ROC curve with the “elbow”, the best-€ threshold and the room's point; a business view in € | Accuracy alone is misleading; the threshold can be chosen automatically, but the right criterion is a business decision |
+| 6 · Our 8 clients | The model's verdict on the 8 clients of the paper game, then the reveal | Model + human judgement beats either alone |
 
 ## Using it in a session
 
 - Open the live link, or save the page (it is a single file) and open it offline from a laptop or a USB stick.
-- The ← → arrow keys move between steps. `#1` to `#5` at the end of the URL opens a given step.
+- The ← → arrow keys move between steps. `#1` to `#6` at the end of the URL opens a given step.
 - Participants can follow on their phones: the layout adapts to small screens.
 
 ## Running it locally

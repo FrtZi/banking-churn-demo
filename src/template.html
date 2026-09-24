@@ -105,7 +105,8 @@
   .side .ctrl label { flex: 1 1 160px; }
   .side input[type=number] { width: 96px; }
   .room-card h3 { margin: 0 0 2px; font-size: 18px; color: var(--cyan); }
-  fieldset.rule-box { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px 10px; margin: 10px 0 0; }
+  fieldset.rule-box { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px 10px; margin: 10px 0 0; min-width: 0; }
+  #t-signals th, #t-signals td { white-space: normal; }
   fieldset.rule-box legend { color: var(--muted); font-size: 13px; padding: 0 4px; }
   .cond { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
   .cond .and { color: var(--muted); font-size: 13px; width: 34px; }
@@ -119,6 +120,10 @@
   table.vs th, table.vs td { padding: 6px 8px; white-space: normal; }
   table.vs td:not(:first-child), table.vs th:not(:first-child) { text-align: right; }
   .room-card textarea { min-height: 60px; }
+  .room-summary { margin: 8px 0 0; padding-left: 20px; }
+  .room-summary li { margin: 4px 0; }
+  .room-summary span { color: var(--muted); }
+  .note a { color: var(--cyan); }
   .pick { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 6px; }
   .pick .btn { padding: 7px 12px; font-size: 15px; }
   .big { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -158,7 +163,7 @@
 <nav id="nav" aria-label="Demo steps"></nav>
 <main>
   <!-- 1 DATA -->
-  <section id="s1">
+  <section id="s-data">
     <h2 tabindex="-1">1 · The data</h2>
     <p class="lead">500 fictitious clients with the same signals as the game. We know who left, so the machine can learn from the past.</p>
     <div class="row" style="margin-bottom:18px">
@@ -172,9 +177,33 @@
       <button class="btn ghost" id="csv" style="margin-left:10px">Download CSV</button></p>
   </section>
 
-  <!-- 2 TRAIN -->
-  <section id="s2">
-    <h2 tabindex="-1">2 · Train a decision tree</h2>
+  <!-- 2 YOUR RULES (before the machine, to avoid anchoring on its rules) -->
+  <section id="s-room">
+    <h2 tabindex="-1">2 · Your rules</h2>
+    <p class="lead">Before the machine speaks: write down the rules the room used in the game. They are scored later, on the same unseen clients as the machine.</p>
+    <div class="row">
+      <div class="card room-card" style="flex:2 1 520px">
+        <h3>The room's rules</h3>
+        <p class="note" style="margin:0">A client is called if <b>any</b> rule matches. Up to 3 rules of 1–2 conditions.</p>
+        <div id="room-rules"></div>
+        <div class="pick">
+          <button class="btn ghost" id="room-example">Load an example</button>
+          <button class="btn ghost" id="room-clear">Clear</button>
+        </div>
+        <label for="room-missing" class="note">Signals the room used that are <b>not</b> in the data</label>
+        <textarea id="room-missing" placeholder="e.g. competitor offer, family event, moving abroad"></textarea>
+      </div>
+      <div class="card" style="flex:1 1 300px">
+        <h3 style="margin:0 0 6px;font-size:18px">Signals in the data</h3>
+        <table id="t-signals"></table>
+        <p class="note">No score yet: the room's rules are revealed next to the machine's at step 4.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 TRAIN -->
+  <section id="s-train">
+    <h2 tabindex="-1">3 · Train a decision tree</h2>
     <p class="lead">The machine looks for the question that best separates leavers from loyal clients, then repeats inside each group.</p>
     <div class="ctrl">
       <label for="depth">How many questions in a row?</label>
@@ -186,30 +215,25 @@
     <p class="note" id="tree-note"></p>
   </section>
 
-  <!-- 3 RULES -->
-  <section id="s3">
-    <h2 tabindex="-1">3 · The rules the machine found</h2>
-    <p class="lead">Each branch of the tree is a rule a business person can read. Compare with the rules the room proposed.</p>
+  <!-- 4 RULES -->
+  <section id="s-rules">
+    <h2 tabindex="-1">4 · The rules the machine found</h2>
+    <p class="lead">Each branch of the tree is a rule a business person can read. Now compare with the rules the room wrote at step 2.</p>
     <div class="row">
       <div class="card" style="flex:2 1 480px" id="rules"></div>
       <div class="card room-card" style="flex:1 1 380px">
         <h3>The room's rules</h3>
-        <p class="note" style="margin:0">Enter the rules the room proposed after the game. A client is called if <b>any</b> rule matches.</p>
-        <div id="room-rules"></div>
-        <div class="pick">
-          <button class="btn ghost" id="room-example">Load an example</button>
-          <button class="btn ghost" id="room-clear">Clear</button>
-        </div>
+        <ol id="room-summary" class="room-summary"></ol>
         <table class="vs" id="room-vs" aria-live="polite"></table>
-        <label for="room-missing" class="note">Signals the room used that are <b>not</b> in the data</label>
-        <textarea id="room-missing" placeholder="e.g. competitor offer, family event, moving abroad"></textarea>
+        <p class="note" id="room-missing-note"></p>
+        <p class="note" style="margin-bottom:0">Same signals? Same thresholds? <a href="#2" id="room-edit">Edit the room's rules</a></p>
       </div>
     </div>
   </section>
 
-  <!-- 4 RESULTS -->
-  <section id="s4">
-    <h2 tabindex="-1">4 · How good is it on new clients?</h2>
+  <!-- 5 RESULTS -->
+  <section id="s-results">
+    <h2 tabindex="-1">5 · How good is it on new clients?</h2>
     <p class="lead">Tested on the <span id="r-test"></span> clients of 2025 the model has never seen.</p>
     <div class="ctrl">
       <label for="thr">Call a client when the risk is at least</label>
@@ -259,10 +283,10 @@
     </div>
   </section>
 
-  <!-- 5 GAME CLIENTS -->
-  <section id="s5">
-    <h2 tabindex="-1">5 · Back to our 8 clients</h2>
-    <p class="lead">What does the model say about Marc, Sophie, Jean…? Same threshold as step 4 (<span id="g-thr"></span>).</p>
+  <!-- 6 GAME CLIENTS -->
+  <section id="s-clients">
+    <h2 tabindex="-1">6 · Back to our 8 clients</h2>
+    <p class="lead">What does the model say about Marc, Sophie, Jean…? Same threshold as step 5 (<span id="g-thr"></span>).</p>
     <div class="clients hidden-reveal" id="clients"></div>
     <div class="ctrl" style="margin-top:16px">
       <button class="btn" id="reveal" aria-pressed="false">Reveal what really happened</button>
@@ -289,7 +313,7 @@
   let tree = null;
 
   // ---------- navigation
-  const steps = ["The data", "Train", "Rules", "Results", "Our 8 clients"];
+  const steps = ["The data", "Your rules", "Train", "Rules", "Results", "Our 8 clients"];
   steps.forEach((s, i) => {
     const b = document.createElement("button");
     b.innerHTML = `<b>${i + 1}</b>${s}`;
@@ -304,7 +328,7 @@
       b.classList.toggle("on", k === cur);
       b.toggleAttribute("aria-current", k === cur);
     });
-    if (cur === 1) drawTree();
+    if (steps[cur] === "Train") drawTree();
     history.replaceState(null, "", `#${cur + 1}`);
     if (moveFocus) document.querySelector("section.on h2").focus({ preventScroll: false });
   }
@@ -414,14 +438,14 @@
 
   // ---------- step 3: the room's rules, scored on the same unseen clients as the machine
   const SIGNALS = {
-    assets: { label: "Assets change (12 m), %", ops: ["le", "ge"], def: -20, step: 5 },
-    contact: { label: "Months since advisor contact", ops: ["ge", "le"], def: 6, step: 1 },
+    assets: { label: "Assets change (12 m), %", name: "Assets change", unit: "%", ops: ["le", "ge"], def: -20, step: 5 },
+    contact: { label: "Months since advisor contact", name: "Last advisor contact", unit: " months", ops: ["ge", "le"], def: 6, step: 1 },
     complaint: { label: "Complaint (last 3 m)", bool: true },
     advisor: { label: "Advisor changed this year", bool: true },
     app: { label: "App usage", choices: ["none", "dropping", "stable", "active", "none or dropping"] },
-    products: { label: "Products held", ops: ["le", "ge"], def: 1, step: 1 },
-    tenure: { label: "Client since (years)", ops: ["le", "ge"], def: 3, step: 1 },
-    age: { label: "Age", ops: ["ge", "le"], def: 60, step: 5 },
+    products: { label: "Products held", name: "Products held", unit: "", ops: ["le", "ge"], def: 1, step: 1 },
+    tenure: { label: "Client since (years)", name: "Client since", unit: " yrs", ops: ["le", "ge"], def: 3, step: 1 },
+    age: { label: "Age", name: "Age", unit: "", ops: ["ge", "le"], def: 60, step: 5 },
   };
   const OP_LABEL = { le: "at most", ge: "at least" };
   let room = [[null, null], [null, null], [null, null]]; // 3 rules x 2 conditions (AND)
@@ -478,12 +502,22 @@
     }));
     if (focused && $(focused)) $(focused).focus();
   }
+  const describe = (c) => {
+    const sg = SIGNALS[c.key];
+    if (sg.bool) return `${sg.label}: ${c.yes ? "yes" : "no"}`;
+    if (sg.choices) return `${sg.label}: ${c.choice}`;
+    return `${sg.name} ${c.op === "le" ? "≤" : "≥"} ${c.value > 0 && sg.unit === "%" ? "+" : ""}${c.value}${sg.unit}`;
+  };
   function drawRoomScore() {
     const thr = +$("thr").value / 100;
+    const written = room.map((rule) => rule.filter(Boolean)).filter((r) => r.length);
+    $("room-summary").innerHTML = written.map((r) => `<li>${r.map(describe).join(" <span>AND</span> ")}</li>`).join("");
+    const missing = $("room-missing").value.trim();
+    $("room-missing-note").textContent = missing ? `Not in the data: ${missing}` : "";
     const mm = Core.evaluate(tree, test, thr);
     const leavers = mm.tp + mm.fn;
     if (!hasRoomRules()) {
-      $("room-vs").innerHTML = `<caption class="note" style="text-align:left">No rule yet: the room calls nobody.</caption>`;
+      $("room-vs").innerHTML = `<caption class="note" style="text-align:left">No rule entered at step 2: the room calls nobody.</caption>`;
     } else {
       const rm = Core.evaluateRules(roomRules(), test);
       const row = (label, a, b) => `<tr><th scope="row">${label}</th><td>${a}</td><td>${b}</td></tr>`;
@@ -497,6 +531,21 @@
     drawRoc(thr);
   }
   $("room-example").onclick = () => { room = Core.ROOM_EXAMPLE.map((r) => [0, 1].map((j) => (r[j] ? fromCore(r[j]) : null))); drawRoomBuilder(); drawRoomScore(); };
+  $("room-edit").onclick = (e) => { e.preventDefault(); go(steps.indexOf("Your rules")); };
+  $("room-missing").oninput = drawRoomScore;
+  // what each signal looks like in the data, to help the room pick thresholds
+  const range = (k) => { const v = data.map((r) => r[k]); return [Math.min(...v), Math.max(...v)]; };
+  const share = (k) => pct(data.filter((r) => r[k]).length / data.length);
+  $("t-signals").innerHTML = [
+    ["Assets change (12 m)", `${range("assets")[0]}% to +${range("assets")[1]}%`],
+    ["Last advisor contact", `${range("contact")[0]} to ${range("contact")[1]} months`],
+    ["Complaint (last 3 m)", `${share("complaint")} of clients`],
+    ["Advisor changed", `${share("advisor")} of clients`],
+    ["App usage", "none · dropping · stable · active"],
+    ["Products held", `${range("products")[0]} to ${range("products")[1]}`],
+    ["Client since", `${range("tenure")[0]} to ${range("tenure")[1]} years`],
+    ["Age", `${range("age")[0]} to ${range("age")[1]}`],
+  ].map(([a, b]) => `<tr><th scope="row">${a}</th><td>${b}</td></tr>`).join("");
   $("room-clear").onclick = () => { room = [[null, null], [null, null], [null, null]]; drawRoomBuilder(); drawRoomScore(); };
 
   // ---------- step 4: results
