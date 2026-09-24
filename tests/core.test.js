@@ -137,3 +137,12 @@ test("inference panel clients: same risk with a sensible tree, opposite certaint
   assert.deepEqual([Core.predict(over, c("C422")), Core.predict(over, c("C401"))], [0, 1]);
   assert.ok(!Core.GAME.some((g) => ["C422", "C401", "C480"].includes(g.id)), "no overlap with the game's 8 clients");
 });
+
+test("data size, seed and learn/test split are parameters; defaults are unchanged", () => {
+  assert.deepEqual(Core.generate(500, 101, 0.8), data);
+  const big = Core.generate(1000, 101, 0.7);
+  assert.equal(big.filter((r) => r.cohort === 2024).length, 700);
+  assert.deepEqual(big.slice(0, 500).map((r) => ({ ...r, cohort: 0 })), data.map((r) => ({ ...r, cohort: 0 })),
+    "a larger sample keeps the same first clients");
+  assert.notDeepEqual(Core.generate(500, 202), data, "another seed gives another sample");
+});

@@ -18,7 +18,7 @@ as the follow-up to a paper game in which participants play the model themselves
 
 | Step | Content | Key message |
 |---|---|---|
-| 1 · The data | 500 synthetic clients: 400 to learn from, 100 kept aside to test | A model learns from the past, and some facts never reach the data |
+| 1 · The data | Synthetic clients (default 500, adjustable 100–5,000), a learn/test split (default 80/20), new random samples; warnings when there is too little data to learn or to check the model | A model learns from the past, some facts never reach the data, and too little data gives unstable results |
 | 2 · Your rules | The room writes the rules it used in the paper game, before seeing anything from the machine (no score shown yet) | Capturing human rules first avoids anchoring on the machine's answer |
 | 3 · Train | The decision tree with two controls (number of questions, minimum group size as a % of clients); an animated search that scores every level on hidden clients (5-fold cross-validation) and draws learned vs hidden curves; predictions for new clients | Past the best level the model memorizes noise: better on the past, worse and falsely certain on new clients. The level is measured, not guessed |
 | 4 · Rules | Each branch as a plain-English rule, next to the room's rules, now scored against the machine on the same unseen clients | A good model can be read and challenged; the most intuitive signal is not always the useful one |
@@ -50,6 +50,9 @@ tests/              unit tests (Node's built-in test runner)
 Every push to `main` runs the tests and deploys the page to GitHub Pages.
 
 ## About the data
+
+The training default is **500 clients, 80/20, sample 1**: every figure in the speaker notes assumes it, and *Reset to training default* brings it back. Other settings are meant for exploration (e.g. 100 clients to show how unstable a model trained on too little data is).
+
 
 The data is **entirely synthetic**. It is generated with a fixed seed, so every run shows the same
 numbers. No real bank, client or person is represented. Churn depends on asset trend, time since

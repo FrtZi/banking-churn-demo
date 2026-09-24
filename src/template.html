@@ -83,6 +83,7 @@
   .inf-row { display: grid; grid-template-columns: 1fr 52px 90px; gap: 10px; align-items: center; margin: 6px 0; font-size: 15px; }
   .inf-row b { font-variant-numeric: tabular-nums; text-align: right; }
   .inf-row .bar { height: 8px; }
+  .gen-select { background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: inherit; }
   .ctrl.stack { flex-direction: column; align-items: flex-start; gap: 6px; }
   #tree text { font-family: "Segoe UI", Calibri, sans-serif; }
   .legend { display: flex; gap: 16px; align-items: center; color: var(--muted); font-size: 14px; }
@@ -181,7 +182,21 @@
   <!-- 1 DATA -->
   <section id="s-data">
     <h2 tabindex="-1">1 · The data</h2>
-    <p class="lead">500 fictitious clients with the same signals as the game. We know who left, so the machine can learn from the past.</p>
+    <p class="lead"><span id="k-lead">500</span> fictitious clients with the same signals as the game. We know who left, so the machine can learn from the past.</p>
+    <div class="card" style="margin-bottom:18px">
+      <div class="ctrl" style="margin:0">
+        <label for="gen-n">Number of clients</label>
+        <select id="gen-n" class="gen-select">
+          <option>100</option><option>200</option><option selected>500</option><option>1000</option><option>2000</option><option>5000</option>
+        </select>
+        <label for="gen-split">Learn / test split</label>
+        <input type="range" id="gen-split" min="50" max="95" step="5" value="80">
+        <output id="gen-split-o"></output>
+        <button class="btn ghost" id="gen-new">New random sample</button>
+        <button class="btn ghost" id="gen-reset">Reset to training default</button>
+      </div>
+      <p class="note" id="gen-note" aria-live="polite" style="margin:8px 0 0"></p>
+    </div>
     <div class="row" style="margin-bottom:18px">
       <div class="card kpi"><div class="v" id="k-n"></div><div class="l">clients</div></div>
       <div class="card kpi"><div class="v" id="k-train"></div><div class="l">to <b>learn</b> from (2024 outcomes)</div></div>
@@ -350,9 +365,18 @@
   const $ = (id) => document.getElementById(id);
   const pct = (x) => `${Math.round(x * 100)}%`;
   const eur = (x) => `${x < 0 ? "−" : ""}€${Math.abs(Math.round(x)).toLocaleString("en-US")}`;
-  const data = Core.generate();
-  const train = data.filter((r) => r.cohort === 2024);
-  const test = data.filter((r) => r.cohort === 2025);
+  // training default: every figure quoted in the speaker notes assumes these settings
+  const DEFAULT_DATA = { n: 500, split: 80, sample: 1 };
+  let gen = { ...DEFAULT_DATA };
+  const seedOf = (sample) => 101 + (sample - 1) * 1009;
+  const isDefaultData = () => gen.n === DEFAULT_DATA.n && gen.split === DEFAULT_DATA.split && gen.sample === DEFAULT_DATA.sample;
+  let data, train, test;
+  function makeData() {
+    data = Core.generate(gen.n, seedOf(gen.sample), gen.split / 100);
+    train = data.filter((r) => r.cohort === 2024);
+    test = data.filter((r) => r.cohort === 2025);
+  }
+  makeData();
   const num = (id, max = Infinity) => Math.min(max, Math.max(0, Number($(id).value) || 0));
   const rate = (rows) => rows.reduce((s, r) => s + r.churn, 0) / rows.length;
   let tree = null;
@@ -387,19 +411,44 @@
   });
 
   // ---------- step 1: data
-  $("k-n").textContent = data.length;
-  $("k-train").textContent = train.length;
-  $("k-test").textContent = test.length;
-  $("k-rate").textContent = pct(rate(data));
   const cols = [["id", "Client"], ["age", "Age"], ["tenure", "Client (yrs)"], ["products", "Products"],
     ["assets", "Assets 12 m"], ["contact", "Last contact (m)"], ["advisor", "Advisor changed"],
     ["complaint", "Complaint"], ["app", "App usage"], ["churn", "Outcome"]];
   const show = (k, v) => k === "assets" ? `${v > 0 ? "+" : ""}${v}%` : k === "churn" ? (v ? "Left" : "Stayed")
     : (k === "advisor" || k === "complaint") ? (v ? "yes" : "no") : v;
-  $("t-data").innerHTML = `<tr>${cols.map((c) => `<th scope="col">${c[1]}</th>`).join("")}</tr>` +
-    data.slice(0, 12).map((r) => `<tr>${cols.map(([k]) =>
-      `<td class="${k === "churn" && r.churn ? "left" : ""}">${show(k, r[k])}</td>`).join("")}</tr>`).join("") +
-    `<tr><td colspan="${cols.length}" class="note">… ${data.length - 12} more clients</td></tr>`;
+  function drawData() {
+    const n = data.length, fmt = (v) => v.toLocaleString("en-US");
+    $("k-lead").textContent = fmt(n);
+    $("k-n").textContent = fmt(n);
+    $("k-train").textContent = fmt(train.length);
+    $("k-test").textContent = fmt(test.length);
+    $("k-rate").textContent = pct(rate(data));
+    $("gen-n").value = String(gen.n);
+    $("gen-split").value = gen.split;
+    $("gen-split-o").textContent = `${gen.split}% learn · ${100 - gen.split}% test`;
+    $("gen-split").setAttribute("aria-valuetext", `${gen.split}% to learn, ${100 - gen.split}% to test`);
+    $("t-data").innerHTML = `<tr>${cols.map((c) => `<th scope="col">${c[1]}</th>`).join("")}</tr>` +
+      data.slice(0, 12).map((r) => `<tr>${cols.map(([k]) =>
+        `<td class="${k === "churn" && r.churn ? "left" : ""}">${show(k, r[k])}</td>`).join("")}</tr>`).join("") +
+      `<tr><td colspan="${cols.length}" class="note">… ${fmt(n - 12)} more clients</td></tr>`;
+    // warn when there is too little data to learn from, or too little to check the model with
+    const learnLeavers = train.filter((r) => r.churn).length, testLeavers = test.filter((r) => r.churn).length;
+    const notes = [isDefaultData()
+      ? `Training default (${DEFAULT_DATA.n} clients, ${DEFAULT_DATA.split}/${100 - DEFAULT_DATA.split}, sample 1): the figures in the speaker notes assume these settings.`
+      : `Custom data (sample ${gen.sample}): the figures differ from the speaker notes.`];
+    if (learnLeavers < 25) notes.push(`<span class="ico-warning" aria-hidden="true">⚠</span> Only <b>${learnLeavers}</b> ${learnLeavers === 1 ? "leaver" : "leavers"} to learn from: the tree has very little to learn.`);
+    if (testLeavers < 10) notes.push(`<span class="ico-warning" aria-hidden="true">⚠</span> Only <b>${testLeavers}</b> ${testLeavers === 1 ? "leaver" : "leavers"} among the ${fmt(test.length)} test clients: step 5 results will swing a lot, too little to confirm the model.`);
+    $("gen-note").innerHTML = notes.join("<br>");
+  }
+  function regenerate() {
+    makeData();
+    search = null; shown = 0;
+    drawData(); drawSignals(); retrain();
+  }
+  $("gen-n").onchange = () => { gen.n = +$("gen-n").value; regenerate(); };
+  $("gen-split").oninput = () => { gen.split = +$("gen-split").value; regenerate(); };
+  $("gen-new").onclick = () => { gen.sample += 1; regenerate(); };
+  $("gen-reset").onclick = () => { gen = { ...DEFAULT_DATA }; regenerate(); };
   $("csv").onclick = () => {
     const keys = ["id", "cohort", "age", "tenure", "products", "assets", "contact", "advisor", "complaint", "app", "churn"];
     const csv = [keys.join(",")].concat(data.map((r) => keys.map((k) => r[k]).join(","))).join("\n");
@@ -418,7 +467,7 @@
   const color = (p) => RAMP[step(p)];
   // text on the fill, >= 4.7:1 on every step (pure black is needed on step 2: #0b0b0b gives only 4.46:1)
   const ink = (p) => (step(p) >= 2 ? "#000000" : "#ffffff");
-  // minimum group size as a share of the 400 training clients (default 3% = 12 clients)
+  // minimum group size as a share of the training clients (default 3% of 400 = 12 clients)
   const MIN_PCTS = [0.5, 1, 2, 3, 5, 10];
   const minPct = () => MIN_PCTS[+$("minpct").value];
   const minLeaf = () => Math.max(1, Math.round((minPct() / 100) * train.length));
@@ -486,10 +535,24 @@
   // three unseen 2025 clients (not the game's 8, so step 6 is not spoiled): #422 and #401 look alike
   // and share the same risk with a sensible tree, but an overfitted tree sends them to 0% and 100%
   const INFERENCE_IDS = ["C422", "C401", "C480"];
+  let inferenceCache = null;
+  function inferencePicks() {
+    if (inferenceCache && inferenceCache.data === data) return inferenceCache.picks;
+    let picks;
+    if (isDefaultData()) picks = INFERENCE_IDS.map((id) => test.find((r) => r.id === id));
+    else {  // custom data: the three unseen clients whose risk moves most between a sensible and an overfitted tree
+      const sensible = Core.train(train, 3, Math.max(1, Math.round(0.03 * train.length)));
+      const over = Core.train(train, 8, Math.max(1, Math.round(0.005 * train.length)));
+      picks = [...test].sort((a, b) => Math.abs(Core.predict(over, b) - Core.predict(sensible, b)) -
+        Math.abs(Core.predict(over, a) - Core.predict(sensible, a))).slice(0, 3);
+    }
+    inferenceCache = { data, picks };
+    return picks;
+  }
   const signals = (c) => [c.complaint ? "complaint" : "", `app ${c.app}`, `assets ${c.assets > 0 ? "+" : ""}${c.assets}%`,
     `contact ${c.contact} m`, c.advisor ? "advisor changed" : ""].filter(Boolean).join(" · ");
   function drawInference() {
-    const picks = INFERENCE_IDS.map((id) => test.find((r) => r.id === id));
+    const picks = inferencePicks();
     $("inference").innerHTML = picks.map((c) => {
       const p = Core.predict(tree, c);
       return `<div class="inf-row"><span>Client #${c.id.slice(1)}<br><span class="note">${signals(c)}</span></span><b>${pct(p)}</b><div class="bar" aria-hidden="true"><i style="width:${Math.max(3, p * 100)}%;background:${color(p)}"></i></div></div>`;
@@ -688,9 +751,9 @@
   $("room-edit").onclick = (e) => { e.preventDefault(); go(steps.indexOf("Your rules")); };
   $("room-missing").oninput = drawRoomScore;
   // what each signal looks like in the data, to help the room pick thresholds
-  const range = (k) => { const v = data.map((r) => r[k]); return [Math.min(...v), Math.max(...v)]; };
+  const range = (k) => data.reduce(([lo, hi], r) => [Math.min(lo, r[k]), Math.max(hi, r[k])], [Infinity, -Infinity]);
   const share = (k) => pct(data.filter((r) => r[k]).length / data.length);
-  $("t-signals").innerHTML = [
+  const drawSignals = () => $("t-signals").innerHTML = [
     ["Assets change (12 m)", `${range("assets")[0]}% to +${range("assets")[1]}%`],
     ["Last advisor contact", `${range("contact")[0]} to ${range("contact")[1]} months`],
     ["Complaint (last 3 m)", `${share("complaint")} of clients`],
@@ -701,6 +764,7 @@
     ["Age", `${range("age")[0]} to ${range("age")[1]}`],
   ].map(([a, b]) => `<tr><th scope="row">${a}</th><td>${b}</td></tr>`).join("");
   $("room-clear").onclick = () => { room = [[null, null], [null, null], [null, null]]; drawRoomBuilder(); drawRoomScore(); };
+  drawSignals();
 
   // ---------- step 4: results
   function drawResults() {
@@ -823,6 +887,7 @@
   // announce the outcome once the slider is released, not on every step
   $("thr").onchange = () => { $("sr-status").textContent = $("r-caught").textContent; };
   for (const id of ["v-client", "v-call", "v-save"]) $(id).oninput = drawResults;
+  drawData();
   drawRoomBuilder();
   retrain();
   go((parseInt(location.hash.slice(1), 10) || 1) - 1, false);

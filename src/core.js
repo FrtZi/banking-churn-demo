@@ -33,7 +33,10 @@ const Core = (() => {
   ];
 
   // ---------- synthetic private-banking clients
-  function generate(n = 500, seed = 101) {
+  // n clients; the first round(n * learnShare) are 2024 (to learn from), the rest 2025 (kept to test).
+  // Rows are drawn in order from the seeded stream, so a larger n keeps the same first clients.
+  function generate(n = 500, seed = 101, learnShare = 0.8) {
+    const nLearn = Math.round(n * learnShare);
     const r = rng(seed);
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
     const rows = [];
@@ -67,7 +70,7 @@ const Core = (() => {
       const assets = housePurchase ? Math.round(-28 - r() * 22) : trueAssets;
       if (housePurchase) churn = r() < 0.05 ? 1 : 0;
 
-      rows.push({ id: `C${String(i + 1).padStart(3, "0")}`, cohort: i < 400 ? 2024 : 2025,
+      rows.push({ id: `C${String(i + 1).padStart(3, "0")}`, cohort: i < nLearn ? 2024 : 2025,
         age, tenure, products, assets, contact, advisor, complaint, app, churn });
     }
     return rows;
