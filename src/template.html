@@ -57,6 +57,7 @@
     background: var(--blue); color: #fff; border: 0; border-radius: 8px; padding: 10px 18px;
     font: inherit; font-weight: 600; cursor: pointer;
   }
+  .btn:disabled, input:disabled { opacity: .5; cursor: progress; }
   .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--muted); font-weight: 400; }
   .ctrl { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
   .ctrl label { color: var(--muted); }
@@ -67,7 +68,22 @@
     padding: 6px 8px; font: inherit;
   }
   .note { color: var(--muted); font-size: 14px; }
-  #tree { width: 100%; height: 540px; }
+  #tree { width: 100%; height: 470px; }
+  .train-grid { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+  .train-grid > .card { min-width: 0; }
+  .train-side { flex: 1 1 360px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .train-side h3 { margin: 0 0 2px; font-size: 18px; }
+  #vc { width: 100%; height: auto; display: block; }
+  #vc text { font-family: "Segoe UI", Calibri, sans-serif; }
+  .folds { display: flex; gap: 4px; margin: 6px 0 2px; }
+  .folds i { flex: 1; height: 14px; border-radius: 4px; background: #2a78d6; opacity: .45; transition: opacity .08s, background .08s; }
+  .folds i.hidden-fold { background: #d95926; opacity: 1; }
+  .key { display: inline-flex; align-items: center; gap: 6px; margin-right: 14px; font-size: 13px; color: var(--muted); }
+  .key i { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
+  .inf-row { display: grid; grid-template-columns: 1fr 52px 90px; gap: 10px; align-items: center; margin: 6px 0; font-size: 15px; }
+  .inf-row b { font-variant-numeric: tabular-nums; text-align: right; }
+  .inf-row .bar { height: 8px; }
+  .ctrl.stack { flex-direction: column; align-items: flex-start; gap: 6px; }
   #tree text { font-family: "Segoe UI", Calibri, sans-serif; }
   .legend { display: flex; gap: 16px; align-items: center; color: var(--muted); font-size: 14px; }
   .grad { width: 160px; height: 10px; border-radius: 5px; background: linear-gradient(90deg, #1c5cab, #3987e5, #86b6ef, #cde2fb); }
@@ -143,7 +159,7 @@
     header, nav, main, footer { padding-left: 16px; padding-right: 16px; }
     .clients { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .rule { grid-template-columns: 56px 1fr; } .rule .bar { grid-column: 1 / -1; }
-    #tree { height: 380px; }
+    #tree { height: 340px; }
     input[type=range] { width: 100%; }
     h2 { font-size: 24px; }
     .row > * { flex-basis: 100% !important; min-width: 0; }
@@ -207,12 +223,41 @@
     <p class="lead">The machine looks for the question that best separates leavers from loyal clients, then repeats inside each group.</p>
     <div class="ctrl">
       <label for="depth">How many questions in a row?</label>
-      <input type="range" id="depth" min="1" max="5" step="1" value="3">
+      <input type="range" id="depth" min="1" max="8" step="1" value="3">
       <output id="depth-o"></output>
-      <span class="legend"><span>Share of clients who left:</span><span>low</span><span class="grad"></span><span>high</span></span>
+      <label for="minpct">Each group must cover at least</label>
+      <input type="range" id="minpct" min="0" max="5" step="1" value="3" aria-valuetext="3% of clients">
+      <output id="minpct-o"></output>
+      <button class="btn" id="search">Find the best level</button>
     </div>
-    <div class="card"><svg id="tree" role="img" aria-labelledby="tree-title" aria-describedby="tree-note"></svg><span class="sr-only" id="tree-title">Decision tree. The same rules are listed as text in step 3.</span></div>
-    <p class="note" id="tree-note"></p>
+    <div class="train-grid">
+      <div class="card" style="flex:2 1 520px">
+        <svg id="tree" role="img" aria-labelledby="tree-title" aria-describedby="tree-note"></svg>
+        <span class="sr-only" id="tree-title">Decision tree. The same rules are listed as text in step 4.</span>
+        <div class="legend"><span>Share of clients who left:</span><span>low</span><span class="grad"></span><span>high</span></div>
+        <p class="note" id="tree-note"></p>
+        <p class="note" style="margin-bottom:0"><b>Why a minimum group size?</b> A rule that covers 2 clients is an anecdote, not a pattern.
+          Anomaly detection (e.g. Isolation Forest) does the opposite: it keeps splitting until one client is isolated, and the fastest isolated are the most unusual.</p>
+      </div>
+      <div class="train-side">
+        <div class="card">
+          <h3>How is the best level found?</h3>
+          <p class="note" style="margin:0 0 4px">Score = how well the model ranks leavers above loyal clients (50% = coin flip).</p>
+          <div><span class="key"><i style="background:#3987e5"></i>Clients it learned from</span><span class="key"><i style="background:#d95926"></i>Hidden clients</span></div>
+          <svg id="vc" viewBox="0 0 400 250" role="img" aria-labelledby="vc-title" aria-describedby="vc-desc"></svg>
+          <span class="sr-only" id="vc-title">Score by number of questions, on learned clients and on hidden clients.</span>
+          <div class="folds" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+          <p class="note" style="margin:0">Cross-validation: hide 1/5 of the 2024 clients, learn on the other 4/5, score on the hidden fifth; 5 times. The 2025 clients stay untouched for step 5.</p>
+          <p class="note" id="vc-desc" aria-live="polite" style="margin:6px 0 0"></p>
+        </div>
+        <div class="card">
+          <h3>What it predicts for new clients</h3>
+          <p class="note" style="margin:0 0 4px">Three clients from the game, who all left:</p>
+          <div id="inference"></div>
+          <p class="note" id="certainty" style="margin:8px 0 0"></p>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- 4 RULES -->
@@ -373,10 +418,112 @@
   const color = (p) => RAMP[step(p)];
   // text on the fill, >= 4.7:1 on every step (pure black is needed on step 2: #0b0b0b gives only 4.46:1)
   const ink = (p) => (step(p) >= 2 ? "#000000" : "#ffffff");
+  // minimum group size as a share of the 400 training clients (default 3% = 12 clients)
+  const MIN_PCTS = [0.5, 1, 2, 3, 5, 10];
+  const minPct = () => MIN_PCTS[+$("minpct").value];
+  const minLeaf = () => Math.max(1, Math.round((minPct() / 100) * train.length));
+  let search = null;           // { curve, best } once "Find the best level" has run
+  let shown = 0;               // how many depths of the curve are drawn (grows during the animation)
+  let searching = false;
   function retrain() {
-    tree = Core.train(train, +$("depth").value);
-    $("depth-o").textContent = $("depth").value;
+    tree = Core.train(train, +$("depth").value, minLeaf());
+    $("depth-o").textContent = `${$("depth").value}`;
+    $("minpct-o").textContent = `${minPct()}% (${minLeaf()} clients)`;
+    $("minpct").setAttribute("aria-valuetext", `${minPct()}% of clients, ${minLeaf()} clients`);
     drawTree(); drawResults(); // drawResults also redraws the rules and the 8 clients
+    drawValidation(); drawInference();
+  }
+
+  function drawValidation() {
+    const L = 40, T = 22, W = 345, H = 180;
+    const X = (d) => L + ((d - 1) / 7) * W, Y = (v) => T + (1 - (v - 0.5) / 0.5) * H;
+    let s = "";
+    const curve = search ? search.curve.slice(0, shown) : [];
+    const done = search && shown === search.curve.length;
+    if (done) {                                   // zones behind the plot, once the search is complete
+      const b = search.best, xb = X(b);
+      if (b > 1) s += `<rect x="${L}" y="${T}" width="${xb - L - 12}" height="${H}" fill="#eef3f8" opacity=".04"/><text x="${(L + xb - 12) / 2}" y="${T - 7}" fill="#a9b6c6" font-size="11" text-anchor="middle">Too simple</text>`;
+      s += `<rect x="${xb - 12}" y="${T}" width="24" height="${H}" fill="#1fa463" opacity=".16"/>`;
+      if (b < 8) s += `<rect x="${xb + 12}" y="${T}" width="${L + W - xb - 12}" height="${H}" fill="#eef3f8" opacity=".04"/><text x="${(xb + 12 + L + W) / 2}" y="${T - 7}" fill="#a9b6c6" font-size="11" text-anchor="middle">Memorizing</text>`;
+    }
+    for (const v of [0.5, 0.6, 0.7, 0.8, 0.9, 1]) {
+      s += `<line x1="${L}" y1="${Y(v)}" x2="${L + W}" y2="${Y(v)}" stroke="#2c3a4f" stroke-width="1"/>`;
+      s += `<text x="${L - 6}" y="${Y(v) + 4}" fill="#a9b6c6" font-size="11" text-anchor="end">${pct(v)}</text>`;
+    }
+    for (let d = 1; d <= 8; d++) s += `<text x="${X(d)}" y="${T + H + 15}" fill="#a9b6c6" font-size="11" text-anchor="middle">${d}</text>`;
+    s += `<text x="${L + W / 2}" y="${T + H + 31}" fill="#a9b6c6" font-size="12" text-anchor="middle">Number of questions (depth)</text>`;
+    if (curve.length) {
+      if (curve.length > 1) {                      // the gap between the two lines = overfitting
+        const top = curve.map((c) => `${X(c.depth)},${Y(c.learned)}`), bot = [...curve].reverse().map((c) => `${X(c.depth)},${Y(c.hidden)}`);
+        s += `<polygon points="${top.concat(bot).join(" ")}" fill="#d95926" opacity=".10"/>`;
+      }
+      for (const [key, col] of [["learned", "#3987e5"], ["hidden", "#d95926"]]) {
+        s += `<polyline points="${curve.map((c) => `${X(c.depth)},${Y(c[key])}`).join(" ")}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+        for (const c of curve) s += `<circle cx="${X(c.depth)}" cy="${Y(c[key])}" r="4.5" fill="${col}" stroke="#1d2a3d" stroke-width="2"><title>${c.depth} questions: ${pct(c[key])} on ${key === "learned" ? "learned" : "hidden"} clients</title></circle>`;
+      }
+    }
+    if (done) {
+      const b = search.curve[search.best - 1];
+      s += `<text x="${X(b.depth)}" y="${Y(b.hidden) + 20}" fill="#eef3f8" font-size="12" font-weight="700" text-anchor="middle">Best: ${b.depth}</text>`;
+      const last = search.curve.at(-1);
+      if (last.learned - last.hidden > 0.08) {
+        s += `<text x="${X(8) - 4}" y="${(Y(last.learned) + Y(last.hidden)) / 2 + 4}" fill="#eef3f8" font-size="11" text-anchor="end">overfitting gap</text>`;
+      }
+    }
+    const d = +$("depth").value;                   // where the manual slider is
+    s += `<line x1="${X(d)}" y1="${T}" x2="${X(d)}" y2="${T + H}" stroke="#eef3f8" stroke-width="1" opacity=".5"/>`;
+    if (!curve.length) {
+      s += `<text x="${L + W / 2}" y="${T + H / 2}" fill="#a9b6c6" font-size="13" text-anchor="middle">Click “Find the best level” to measure</text>`;
+    }
+    $("vc").innerHTML = s;
+    if (done) {
+      const b = search.curve[search.best - 1], last = search.curve.at(-1);
+      $("vc-desc").textContent = `Best level: ${b.depth} questions (${pct(b.hidden)} on hidden clients). ` +
+        `At 8 questions the model scores ${pct(last.learned)} on the clients it learned from but only ${pct(last.hidden)} on hidden ones: it memorizes instead of generalizing.`;
+    } else if (!searching) $("vc-desc").textContent = "";
+  }
+
+  function drawInference() {
+    const picks = ["A", "F", "D"].map((id) => Core.GAME.find((g) => g.id === id));
+    $("inference").innerHTML = picks.map((c) => {
+      const p = Core.predict(tree, c);
+      return `<div class="inf-row"><span>${c.name}</span><b>${pct(p)}</b><div class="bar" aria-hidden="true"><i style="width:${Math.max(3, p * 100)}%;background:${color(p)}"></i></div></div>`;
+    }).join("");
+    const extreme = test.filter((r) => { const p = Core.predict(tree, r); return p === 0 || p === 1; }).length;
+    $("certainty").innerHTML = extreme
+      ? `<span class="ico-warning" aria-hidden="true">⚠</span> <b>${extreme} of ${test.length}</b> new clients get a 0% or 100% prediction: false certainty.`
+      : `No new client gets a 0% or 100% prediction.`;
+  }
+
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  async function runSearch() {
+    if (searching) return;
+    searching = true;
+    const controls = ["search", "depth", "minpct"].map((id) => $(id));
+    controls.forEach((c) => (c.disabled = true));
+    search = Core.depthSearch(train, minLeaf());
+    const folds = [...document.querySelectorAll(".folds i")];
+    if (reduceMotion()) {
+      shown = search.curve.length;
+    } else {
+      $("vc-desc").textContent = "Measuring each level on hidden clients…";
+      for (shown = 0; shown < search.curve.length;) {
+        $("depth").value = shown + 1;
+        tree = Core.train(train, shown + 1, minLeaf());
+        $("depth-o").textContent = `${shown + 1}`;
+        drawTree(); drawInference();
+        for (const f of folds) { folds.forEach((x) => x.classList.toggle("hidden-fold", x === f)); await sleep(90); }
+        shown++;
+        drawValidation();
+        await sleep(160);
+      }
+      folds.forEach((x) => x.classList.remove("hidden-fold"));
+    }
+    $("depth").value = search.best;
+    searching = false;
+    controls.forEach((c) => (c.disabled = false));
+    retrain();
   }
   function drawTree() {
     const svg = $("tree");
@@ -419,7 +566,9 @@
     svg.innerHTML = s;
     const L = Core.leaves(tree);
     $("tree-note").textContent = `${L.length} groups of clients, from ${pct(Math.min(...L.map((l) => l.node.p)))} to ${pct(Math.max(...L.map((l) => l.node.p)))} of leavers. ` +
-      (+$("depth").value >= 5 ? "More questions = more detail… but also more risk of learning noise (overfitting)." : "Try more questions with the slider.");
+      (search && shown === search.curve.length && +$("depth").value > search.best
+        ? `Beyond ${search.best} questions the model starts memorizing noise (overfitting).`
+        : "More questions = more detail, but also more risk of learning noise.");
   }
 
   // ---------- step 3: rules
@@ -663,6 +812,8 @@
   $("reveal").onclick = () => { revealed = !revealed; showReveal(); };
 
   $("depth").oninput = retrain;
+  $("minpct").oninput = () => { if (search) { search = Core.depthSearch(train, minLeaf()); shown = search.curve.length; } retrain(); };
+  $("search").onclick = runSearch;
   $("thr").oninput = drawResults;
   // announce the outcome once the slider is released, not on every step
   $("thr").onchange = () => { $("sr-status").textContent = $("r-caught").textContent; };

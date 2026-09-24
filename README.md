@@ -20,7 +20,7 @@ as the follow-up to a paper game in which participants play the model themselves
 |---|---|---|
 | 1 · The data | 500 synthetic clients: 400 to learn from, 100 kept aside to test | A model learns from the past, and some facts never reach the data |
 | 2 · Your rules | The room writes the rules it used in the paper game, before seeing anything from the machine (no score shown yet) | Capturing human rules first avoids anchoring on the machine's answer |
-| 3 · Train | The decision tree, with a slider for how many questions it may ask | More questions give more detail, but also more risk of learning noise |
+| 3 · Train | The decision tree with two controls (number of questions, minimum group size as a % of clients); an animated search that scores every level on hidden clients (5-fold cross-validation) and draws learned vs hidden curves; predictions for new clients | Past the best level the model memorizes noise: better on the past, worse and falsely certain on new clients. The level is measured, not guessed |
 | 4 · Rules | Each branch as a plain-English rule, next to the room's rules, now scored against the machine on the same unseen clients | A good model can be read and challenged; the most intuitive signal is not always the useful one |
 | 5 · Results | Confusion matrix, sensitivity and specificity on unseen clients; a ROC curve with the “elbow”, the best-€ threshold and the room's point; a business view in € | Accuracy alone is misleading; the threshold can be chosen automatically, but the right criterion is a business decision |
 | 6 · Our 8 clients | The model's verdict on the 8 clients of the paper game, then the reveal | Model + human judgement beats either alone |

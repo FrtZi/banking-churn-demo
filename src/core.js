@@ -232,6 +232,32 @@ const Core = (() => {
   // area under the (piecewise-linear) ROC curve
   const auc = (points) => points.slice(1).reduce((s, q, i) => s + (q.fpr - points[i].fpr) * (q.tpr + points[i].tpr) / 2, 0);
 
-  return { matches, evaluateRules, ROOM_EXAMPLE, roc, auc, rng, generate, GAME, FEATURES, train, predict, leaves, ruleText, evaluate, edgeLabel, nodeLabel, APP };
+  // ranking score = area under the ROC curve of a tree on some rows (0.5 = coin flip, 1 = perfect)
+  const score = (tree, rows) => auc(roc(tree, rows));
+
+  // k-fold cross-validation on the training clients only: hide 1/k, learn on the rest, score on the
+  // hidden part, k times. Folds are fixed (row i goes to fold i % k) so the demo is reproducible.
+  function crossValidate(rows, maxDepth, minLeaf, k = 5) {
+    const folds = [];
+    for (let f = 0; f < k; f++) {
+      const hidden = rows.filter((_, i) => i % k === f);
+      const learn = rows.filter((_, i) => i % k !== f);
+      folds.push(score(train(learn, maxDepth, minLeaf), hidden));
+    }
+    return { mean: folds.reduce((x, y) => x + y, 0) / k, folds };
+  }
+
+  // score on the learned clients vs on hidden clients, for every depth; best = highest hidden score
+  // (ties go to the simpler tree)
+  function depthSearch(rows, minLeaf, maxDepth = 8) {
+    const curve = [];
+    for (let d = 1; d <= maxDepth; d++) {
+      curve.push({ depth: d, learned: score(train(rows, d, minLeaf), rows), hidden: crossValidate(rows, d, minLeaf).mean });
+    }
+    const best = curve.reduce((b, c) => (c.hidden > b.hidden + 1e-9 ? c : b));
+    return { curve, best: best.depth };
+  }
+
+  return { score, crossValidate, depthSearch, matches, evaluateRules, ROOM_EXAMPLE, roc, auc, rng, generate, GAME, FEATURES, train, predict, leaves, ruleText, evaluate, edgeLabel, nodeLabel, APP };
 })();
 if (typeof module !== "undefined") module.exports = Core;

@@ -110,3 +110,21 @@ test("the example room rules tell the story used in the training", () => {
   const intuitive = Core.evaluateRules([[{ key: "assets", op: "le", value: -20 }]], test2025);
   assert.ok(intuitive.tp <= 1, "assets down alone is mostly noise (house purchases)");
 });
+
+test("cross-validation is reproducible and never uses the 2025 test clients", () => {
+  const a = Core.crossValidate(train, 3, 12), b = Core.crossValidate(train, 3, 12);
+  assert.deepEqual(a, b);
+  assert.equal(a.folds.length, 5);
+});
+
+test("depth search: learned score keeps rising, hidden score peaks at 3 questions (3% minimum group)", () => {
+  const { curve, best } = Core.depthSearch(train, 12);
+  assert.equal(best, 3);
+  assert.ok(curve.at(-1).learned > curve[0].learned);
+  assert.ok(curve.at(-1).hidden < curve[best - 1].hidden, "going deeper hurts on hidden clients");
+});
+
+test("tiny groups make overfitting obvious: big gap between learned and hidden clients", () => {
+  const deep = Core.depthSearch(train, 2).curve.at(-1);
+  assert.ok(deep.learned - deep.hidden > 0.2, `gap ${deep.learned - deep.hidden}`);
+});
