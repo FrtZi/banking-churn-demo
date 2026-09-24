@@ -36,8 +36,12 @@
   main { padding: 20px 32px 40px; max-width: 1400px; }
   section { display: none; }
   section.on { display: block; animation: fade .2s ease; }
+  @media (prefers-reduced-motion: reduce) { section.on { animation: none; } }
+  ::placeholder { color: var(--muted); opacity: 1; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   h2 { margin: 0 0 4px; font-size: 30px; }
+  h2[tabindex]:focus { outline: none; }
   .lead { color: var(--muted); margin: 0 0 20px; font-size: 18px; }
   .row { display: flex; gap: 18px; flex-wrap: wrap; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
@@ -127,7 +131,7 @@
 <main>
   <!-- 1 DATA -->
   <section id="s1">
-    <h2>1 · The data</h2>
+    <h2 tabindex="-1">1 · The data</h2>
     <p class="lead">500 fictitious clients with the same signals as the game. We know who left, so the machine can learn from the past.</p>
     <div class="row" style="margin-bottom:18px">
       <div class="card kpi"><div class="v" id="k-n"></div><div class="l">clients</div></div>
@@ -142,7 +146,7 @@
 
   <!-- 2 TRAIN -->
   <section id="s2">
-    <h2>2 · Train a decision tree</h2>
+    <h2 tabindex="-1">2 · Train a decision tree</h2>
     <p class="lead">The machine looks for the question that best separates leavers from loyal clients, then repeats inside each group.</p>
     <div class="ctrl">
       <label for="depth">How many questions in a row?</label>
@@ -150,18 +154,18 @@
       <output id="depth-o"></output>
       <span class="legend"><span>Share of clients who left:</span><span>low</span><span class="grad"></span><span>high</span></span>
     </div>
-    <div class="card"><svg id="tree" role="img" aria-label="Decision tree"></svg></div>
+    <div class="card"><svg id="tree" role="img" aria-labelledby="tree-title" aria-describedby="tree-note"></svg><span class="sr-only" id="tree-title">Decision tree. The same rules are listed as text in step 3.</span></div>
     <p class="note" id="tree-note"></p>
   </section>
 
   <!-- 3 RULES -->
   <section id="s3">
-    <h2>3 · The rules the machine found</h2>
+    <h2 tabindex="-1">3 · The rules the machine found</h2>
     <p class="lead">Each branch of the tree is a rule a business person can read. Compare with the rules the room proposed.</p>
     <div class="row">
       <div class="card" style="flex:2 1 560px" id="rules"></div>
       <div class="card" style="flex:1 1 300px">
-        <div style="font-weight:700;color:var(--cyan);margin-bottom:8px">The room's rules</div>
+        <label for="room" style="display:block;font-weight:700;color:var(--cyan);margin-bottom:8px">The room's rules</label>
         <textarea id="room" placeholder="Type the rules the room proposed during the game…&#10;e.g. assets down + no contact for 6 months"></textarea>
         <p class="note">Same signals? Same thresholds? What did the machine see that we did not, and vice versa?</p>
       </div>
@@ -170,7 +174,7 @@
 
   <!-- 4 RESULTS -->
   <section id="s4">
-    <h2>4 · How good is it on new clients?</h2>
+    <h2 tabindex="-1">4 · How good is it on new clients?</h2>
     <p class="lead">Tested on the <span id="r-test"></span> clients of 2025 the model has never seen.</p>
     <div class="ctrl">
       <label for="thr">Call a client when the risk is at least</label>
@@ -182,23 +186,23 @@
         <div class="matrix">
           <div></div><div class="h">Really <b>left</b></div><div class="h">Really <b>stayed</b></div>
           <div class="rh">Model says<br><b>call</b></div>
-          <div class="cell good"><div class="n" id="m-tp"></div><div class="t"><span class="ico-good" aria-hidden="true">✔</span> Caught</div><div class="d">leaver flagged in time</div></div>
-          <div class="cell warn"><div class="n" id="m-fp"></div><div class="t"><span class="ico-warning" aria-hidden="true">⚠</span> False alarm</div><div class="d">one call for nothing</div></div>
+          <div class="cell good"><span class="sr-only">Model says call, client really left: </span><div class="n" id="m-tp"></div><div class="t"><span class="ico-good" aria-hidden="true">✔</span> Caught</div><div class="d">leaver flagged in time</div></div>
+          <div class="cell warn"><span class="sr-only">Model says call, client really stayed: </span><div class="n" id="m-fp"></div><div class="t"><span class="ico-warning" aria-hidden="true">⚠</span> False alarm</div><div class="d">one call for nothing</div></div>
           <div class="rh">Model says<br><b>fine</b></div>
-          <div class="cell bad"><div class="n" id="m-fn"></div><div class="t"><span class="ico-critical" aria-hidden="true">✘</span> Missed</div><div class="d">leaver not flagged</div></div>
-          <div class="cell good"><div class="n" id="m-tn"></div><div class="t"><span class="ico-good" aria-hidden="true">✔</span> Left alone</div><div class="d">loyal, not bothered</div></div>
+          <div class="cell bad"><span class="sr-only">Model says fine, client really left: </span><div class="n" id="m-fn"></div><div class="t"><span class="ico-critical" aria-hidden="true">✘</span> Missed</div><div class="d">leaver not flagged</div></div>
+          <div class="cell good"><span class="sr-only">Model says fine, client really stayed: </span><div class="n" id="m-tn"></div><div class="t"><span class="ico-good" aria-hidden="true">✔</span> Left alone</div><div class="d">loyal, not bothered</div></div>
         </div>
       </div>
       <div class="side">
         <div class="card"><div class="note">Calls to make</div><div class="big" id="r-calls"></div>
-          <div class="note" id="r-caught"></div></div>
+          <div class="note" id="r-caught" aria-live="polite"></div></div>
         <div class="card alert"><div class="note">Accuracy</div><div class="big" id="r-acc"></div>
           <div class="note" id="r-base"></div></div>
         <div class="card">
           <div class="note" style="margin-bottom:8px">Business view (adjust live)</div>
-          <div class="ctrl" style="margin:0 0 6px"><label>Revenue lost per leaver, €/yr</label><input type="number" id="v-client" value="12000" step="1000" min="0"></div>
-          <div class="ctrl" style="margin:0 0 6px"><label>Cost of one retention call, €</label><input type="number" id="v-call" value="150" step="50" min="0"></div>
-          <div class="ctrl" style="margin:0"><label>Leavers saved by a call, %</label><input type="number" id="v-save" value="30" step="5" min="0" max="100"></div>
+          <div class="ctrl" style="margin:0 0 6px"><label for="v-client">Revenue lost per leaver, €/yr</label><input type="number" id="v-client" value="12000" step="1000" min="0"></div>
+          <div class="ctrl" style="margin:0 0 6px"><label for="v-call">Cost of one retention call, €</label><input type="number" id="v-call" value="150" step="50" min="0"></div>
+          <div class="ctrl" style="margin:0"><label for="v-save">Leavers saved by a call, %</label><input type="number" id="v-save" value="30" step="5" min="0" max="100"></div>
           <div style="margin-top:10px">Net value of the campaign: <span class="big" id="r-net" style="font-size:24px"></span></div>
         </div>
       </div>
@@ -207,12 +211,12 @@
 
   <!-- 5 GAME CLIENTS -->
   <section id="s5">
-    <h2>5 · Back to our 8 clients</h2>
+    <h2 tabindex="-1">5 · Back to our 8 clients</h2>
     <p class="lead">What does the model say about Marc, Sophie, Jean…? Same threshold as step 4 (<span id="g-thr"></span>).</p>
     <div class="clients hidden-reveal" id="clients"></div>
     <div class="ctrl" style="margin-top:16px">
-      <button class="btn" id="reveal">Reveal what really happened</button>
-      <span class="note" id="g-summary"></span>
+      <button class="btn" id="reveal" aria-pressed="false">Reveal what really happened</button>
+      <span class="note" id="g-summary" aria-live="polite"></span>
     </div>
   </section>
 </main>
@@ -241,7 +245,7 @@
     $("nav").appendChild(b);
   });
   let cur = 0;
-  function go(i) {
+  function go(i, moveFocus = true) {
     cur = Math.max(0, Math.min(steps.length - 1, i));
     document.querySelectorAll("section").forEach((s, k) => s.classList.toggle("on", k === cur));
     document.querySelectorAll("nav button").forEach((b, k) => {
@@ -250,6 +254,7 @@
     });
     if (cur === 1) drawTree();
     history.replaceState(null, "", `#${cur + 1}`);
+    if (moveFocus) document.querySelector("section.on h2").focus({ preventScroll: false });
   }
   document.addEventListener("keydown", (e) => {
     if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
@@ -267,7 +272,7 @@
     ["complaint", "Complaint"], ["app", "App usage"], ["churn", "Outcome"]];
   const show = (k, v) => k === "assets" ? `${v > 0 ? "+" : ""}${v}%` : k === "churn" ? (v ? "Left" : "Stayed")
     : (k === "advisor" || k === "complaint") ? (v ? "yes" : "no") : v;
-  $("t-data").innerHTML = `<tr>${cols.map((c) => `<th>${c[1]}</th>`).join("")}</tr>` +
+  $("t-data").innerHTML = `<tr>${cols.map((c) => `<th scope="col">${c[1]}</th>`).join("")}</tr>` +
     data.slice(0, 12).map((r) => `<tr>${cols.map(([k]) =>
       `<td class="${k === "churn" && r.churn ? "left" : ""}">${show(k, r[k])}</td>`).join("")}</tr>`).join("") +
     `<tr><td colspan="${cols.length}" class="note">… ${data.length - 12} more clients</td></tr>`;
@@ -354,6 +359,7 @@
   function drawResults() {
     const thr = +$("thr").value / 100;
     $("thr-o").textContent = `${$("thr").value}%`;
+    $("thr").setAttribute("aria-valuetext", `${$("thr").value}% risk`);
     $("g-thr").textContent = `${$("thr").value}%`;
     $("r-test").textContent = test.length;
     const m = Core.evaluate(tree, test, thr);
@@ -391,6 +397,7 @@
   $("reveal").onclick = () => {
     const box = $("clients");
     const hidden = box.classList.toggle("hidden-reveal");
+    $("reveal").setAttribute("aria-pressed", String(!hidden));
     $("reveal").textContent = hidden ? "Reveal what really happened" : "Hide the answers";
     $("g-summary").textContent = hidden ? "" : `The model got ${$("g-summary").dataset.ok} of 8 right. How did the room do?`;
   };
@@ -399,7 +406,7 @@
   $("thr").oninput = drawResults;
   for (const id of ["v-client", "v-call", "v-save"]) $(id).oninput = drawResults;
   retrain();
-  go((parseInt(location.hash.slice(1), 10) || 1) - 1);
+  go((parseInt(location.hash.slice(1), 10) || 1) - 1, false);
 })();
 </script>
 </body>
