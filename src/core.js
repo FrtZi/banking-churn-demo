@@ -147,12 +147,6 @@ const Core = (() => {
     const lo = Math.floor(t), hi = Math.floor(t) + 1;
     return yes ? `${name} ≤ ${fmtNum(lo, f)}` : `${name} ≥ ${fmtNum(hi, f)}`;
   }
-  const question = (f, t) => {
-    if (f.type === "bool") return `${f.short || f.label}?`;
-    if (f.type === "ord") return `${f.label}: ${f.levels.slice(0, Math.floor(t) + 1).join(" / ")}?`;
-    return `${f.short || f.label} ≤ ${fmtNum(Math.floor(t), f)}?`;
-  };
-
   // short label on a tree edge: yes = "value <= t" branch
   function edgeLabel(f, t, yes) {
     if (f.type === "bool") return yes ? "no" : "yes";
@@ -193,6 +187,6 @@ const Core = (() => {
     return m;
   }
 
-  return { rng, generate, GAME, FEATURES, train, predict, leaves, question, ruleText, evaluate, edgeLabel, nodeLabel, APP };
+  return { rng, generate, GAME, FEATURES, train, predict, leaves, ruleText, evaluate, edgeLabel, nodeLabel, APP };
 })();
 if (typeof module !== "undefined") module.exports = Core;

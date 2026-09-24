@@ -195,7 +195,7 @@
       </div>
       <div class="side">
         <div class="card"><div class="note">Calls to make</div><div class="big" id="r-calls"></div>
-          <div class="note" id="r-caught" aria-live="polite"></div></div>
+          <div class="note" id="r-caught"></div></div>
         <div class="card alert"><div class="note">Accuracy</div><div class="big" id="r-acc"></div>
           <div class="note" id="r-base"></div></div>
         <div class="card">
@@ -220,6 +220,7 @@
     </div>
   </section>
 </main>
+<div class="sr-only" aria-live="polite" id="sr-status"></div>
 <footer>Synthetic data for training purposes only: no real bank, client or person is represented. Decision tree (CART) computed live in your browser; works offline. · Made by <a href="https://altaira.eu" rel="noopener">Altaïra</a> · <a href="https://github.com/FrtZi/banking-churn-demo" rel="noopener">Source code (MIT)</a></footer>
 
 <script>
@@ -257,9 +258,12 @@
     if (moveFocus) document.querySelector("section.on h2").focus({ preventScroll: false });
   }
   document.addEventListener("keydown", (e) => {
-    if (["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
-    if (e.key === "ArrowRight" || e.key === "PageDown") go(cur + 1);
-    if (e.key === "ArrowLeft" || e.key === "PageUp") go(cur - 1);
+    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) return;
+    const move = { ArrowRight: 1, PageDown: 1, ArrowLeft: -1, PageUp: -1 }[e.key];
+    if (!move) return;
+    e.preventDefault();
+    go(cur + move);
   });
 
   // ---------- step 1: data
@@ -283,6 +287,7 @@
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
     a.download = "churn_demo_clients.csv";
     a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 0);
   };
 
   // ---------- step 2: tree
@@ -291,11 +296,12 @@
   const RAMP = ["#1c5cab", "#256abf", "#2a78d6", "#3987e5", "#5598e7", "#6da7ec", "#86b6ef", "#9ec5f4", "#b7d3f6", "#cde2fb"];
   const step = (p) => Math.round(Math.min(1, p / 0.6) * (RAMP.length - 1));
   const color = (p) => RAMP[step(p)];
-  const ink = (p) => (step(p) >= 2 ? "#0b0b0b" : "#ffffff"); // >= 4.5:1 on every step
+  // text on the fill, >= 4.7:1 on every step (pure black is needed on step 2: #0b0b0b gives only 4.46:1)
+  const ink = (p) => (step(p) >= 2 ? "#000000" : "#ffffff");
   function retrain() {
     tree = Core.train(train, +$("depth").value);
     $("depth-o").textContent = $("depth").value;
-    drawTree(); drawRules(); drawResults(); drawClients();
+    drawTree(); drawResults(); // drawResults also redraws the rules and the 8 clients
   }
   function drawTree() {
     const svg = $("tree");
@@ -369,8 +375,8 @@
     $("r-caught").textContent = `${m.tp} of the ${leavers} leavers caught · ${calls ? pct(m.tp / calls) : "–"} of calls are useful`;
     $("r-acc").textContent = pct((m.tp + m.tn) / test.length);
     $("r-base").innerHTML = `A “model” that says <b>nobody leaves</b> scores ${pct((m.tn + m.fp) / test.length)} without catching a single leaver. Accuracy alone is misleading.`;
-    const net = m.tp * ($("v-save").value / 100) * $("v-client").value - calls * $("v-call").value;
-    $("r-net").textContent = `${eur(net)} / yr`;
+    const num = (id, max = Infinity) => Math.min(max, Math.max(0, Number($(id).value) || 0));
+    const net = m.tp * (num("v-save", 100) / 100) * num("v-client") - calls * num("v-call");
     $("r-net").textContent = `${net >= 0 ? "▲" : "▼"} ${eur(net)} / yr`;
     $("r-net").style.color = net >= 0 ? "var(--good)" : "var(--critical)";
     drawRules(); drawClients();
@@ -391,19 +397,22 @@
         <div>${flag ? "→ call this client" : "→ no action"}</div>
         <div class="verdict"><span class="ico-${cls}" aria-hidden="true">${icon}</span> ${txt}</div></div></div>`;
     }).join("");
-    $("g-summary").textContent = "";
-    $("g-summary").dataset.ok = ok;
+    gameCorrect = ok;
+    showReveal();
   }
-  $("reveal").onclick = () => {
-    const box = $("clients");
-    const hidden = box.classList.toggle("hidden-reveal");
-    $("reveal").setAttribute("aria-pressed", String(!hidden));
-    $("reveal").textContent = hidden ? "Reveal what really happened" : "Hide the answers";
-    $("g-summary").textContent = hidden ? "" : `The model got ${$("g-summary").dataset.ok} of 8 right. How did the room do?`;
-  };
+  let revealed = false, gameCorrect = 0;
+  function showReveal() {
+    $("clients").classList.toggle("hidden-reveal", !revealed);
+    $("reveal").setAttribute("aria-pressed", String(revealed));
+    $("reveal").textContent = revealed ? "Hide the answers" : "Reveal what really happened";
+    $("g-summary").textContent = revealed ? `The model got ${gameCorrect} of 8 right. How did the room do?` : "";
+  }
+  $("reveal").onclick = () => { revealed = !revealed; showReveal(); };
 
   $("depth").oninput = retrain;
   $("thr").oninput = drawResults;
+  // announce the outcome once the slider is released, not on every step
+  $("thr").onchange = () => { $("sr-status").textContent = $("r-caught").textContent; };
   for (const id of ["v-client", "v-call", "v-save"]) $(id).oninput = drawResults;
   retrain();
   go((parseInt(location.hash.slice(1), 10) || 1) - 1, false);
