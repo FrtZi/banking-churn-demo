@@ -146,3 +146,29 @@ test("data size, seed and learn/test split are parameters; defaults are unchange
     "a larger sample keeps the same first clients");
   assert.notDeepEqual(Core.generate(500, 202), data, "another seed gives another sample");
 });
+
+test("training data-quality issues are reproducible and do what they say", () => {
+  assert.deepEqual(Core.degradeTraining(train, []), train);
+  assert.deepEqual(Core.degradeTraining(train, ["labelNoise"]), Core.degradeTraining(train, ["labelNoise"]));
+  const leavers = (rows) => rows.filter((r) => r.churn).length;
+  assert.ok(leavers(Core.degradeTraining(train, ["labelNoise"])) < leavers(train));
+  assert.ok(Core.degradeTraining(train, ["sampleBias"]).every((r) => r.age < 50));
+  const lost = Core.degradeTraining(train, ["complaintsLost"]).filter((r) => r.complaint).length;
+  assert.ok(lost < train.filter((r) => r.complaint).length);
+});
+
+test("drift monitor: clean batch is stable, each broken feed raises an alert on its own signal", () => {
+  const batch = Core.newBatch();
+  const feature = (k) => Core.FEATURES.find((f) => f.key === k);
+  for (const f of Core.FEATURES) assert.ok(Core.psi(train, batch, f) < 0.1, `${f.key} stable on clean data`);
+  const expected = { complaintsStop: "complaint", contactZero: "contact", appBroken: "app", assetsRatio: "assets" };
+  for (const [issue, key] of Object.entries(expected)) {
+    assert.ok(Core.psi(train, Core.degradeBatch(batch, [issue]), feature(key)) > 0.25, `${issue} -> ${key}`);
+  }
+});
+
+test("a broken complaint feed silently hurts the model in production", () => {
+  const model = Core.train(train, 3, 12), batch = Core.newBatch();
+  const clean = Core.evaluate(model, batch, 0.3), broken = Core.evaluate(model, Core.degradeBatch(batch, ["complaintsStop"]), 0.3);
+  assert.ok(broken.tp < clean.tp / 2, `${broken.tp} vs ${clean.tp}`);
+});

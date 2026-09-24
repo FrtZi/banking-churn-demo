@@ -261,6 +261,59 @@ const Core = (() => {
     return { curve, best: best.depth };
   }
 
-  return { score, crossValidate, depthSearch, matches, evaluateRules, ROOM_EXAMPLE, roc, auc, rng, generate, GAME, FEATURES, train, predict, leaves, ruleText, evaluate, edgeLabel, nodeLabel, APP };
+  // ---------- data quality
+  // Problems in the historical data the model learns from (applied to the 2024 clients only;
+  // the 2025 test clients stay clean so the results step shows the true impact).
+  const TRAINING_ISSUES = {
+    missingContact: { label: "Missing last-contact dates, filled with 0 by the system (30% of clients)",
+      apply: (rows, r) => rows.map((x) => (r() < 0.3 ? { ...x, contact: 0 } : x)) },
+    complaintsLost: { label: "Complaints not logged for part of the year (60% of complaints lost)",
+      apply: (rows, r) => rows.map((x) => (x.complaint && r() < 0.6 ? { ...x, complaint: 0 } : x)) },
+    labelNoise: { label: "Wrong outcome: account closures recorded as \"stayed\" (35% of leavers)",
+      apply: (rows, r) => rows.map((x) => (x.churn && r() < 0.35 ? { ...x, churn: 0 } : x)) },
+    sampleBias: { label: "Biased sample: history only kept for clients under 50",
+      apply: (rows) => rows.filter((x) => x.age < 50) },
+  };
+  function degradeTraining(rows, issues, seed = 7) {
+    const r = rng(seed);
+    return Object.keys(TRAINING_ISSUES).reduce((out, k) => (issues.includes(k) ? TRAINING_ISSUES[k].apply(out, r) : out), rows);
+  }
+
+  // Problems in the data flowing into a model already in production.
+  const INFERENCE_ISSUES = {
+    complaintsStop: { label: "Complaint feed broken: no complaint arrives any more",
+      apply: (x) => ({ ...x, complaint: 0 }) },
+    contactZero: { label: "CRM migration: last-contact date defaults to 0",
+      apply: (x) => ({ ...x, contact: 0 }) },
+    appBroken: { label: "App tracking stopped: every client shows \"none\"",
+      apply: (x) => ({ ...x, app: "none" }) },
+    assetsRatio: { label: "Format change: assets delivered as a ratio (-0.2) instead of % (-20)",
+      apply: (x) => ({ ...x, assets: Math.round(x.assets) / 100 }) },
+  };
+  const degradeBatch = (rows, issues) =>
+    rows.map((x) => Object.keys(INFERENCE_ISSUES).reduce((y, k) => (issues.includes(k) ? INFERENCE_ISSUES[k].apply(y) : y), x));
+
+  // a batch of new clients arriving after go-live (their outcome is only known months later)
+  const newBatch = (n = 1000, seed = 2026) =>
+    generate(n, seed, 0).map((x, i) => ({ ...x, id: `N${String(i + 1).padStart(4, "0")}`, cohort: 2026 }));
+
+  // Population Stability Index: how much a signal's distribution moved between the data the model
+  // learned from (ref) and new data (cur). Usual reading: < 0.10 stable, 0.10-0.25 watch, > 0.25 alert.
+  function psi(ref, cur, f) {
+    let bucket;
+    if (f.type === "num") {
+      const v = ref.map((x) => x[f.key]).sort((a, b) => a - b);
+      const edges = [...new Set([0.2, 0.4, 0.6, 0.8].map((q) => v[Math.floor(q * (v.length - 1))]))];
+      bucket = (x) => edges.filter((e) => x[f.key] > e).length;
+    } else bucket = (x) => String(x[f.key]);
+    const share = (rows) => rows.reduce((m, x) => m.set(bucket(x), (m.get(bucket(x)) || 0) + 1 / rows.length), new Map());
+    const a = share(ref), b = share(cur), eps = 1e-4;
+    return [...new Set([...a.keys(), ...b.keys()])].reduce((s, k) => {
+      const p = Math.max(a.get(k) || 0, eps), q = Math.max(b.get(k) || 0, eps);
+      return s + (q - p) * Math.log(q / p);
+    }, 0);
+  }
+
+  return { TRAINING_ISSUES, degradeTraining, INFERENCE_ISSUES, degradeBatch, newBatch, psi, score, crossValidate, depthSearch, matches, evaluateRules, ROOM_EXAMPLE, roc, auc, rng, generate, GAME, FEATURES, train, predict, leaves, ruleText, evaluate, edgeLabel, nodeLabel, APP };
 })();
 if (typeof module !== "undefined") module.exports = Core;

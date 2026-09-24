@@ -84,6 +84,15 @@
   .inf-row b { font-variant-numeric: tabular-nums; text-align: right; }
   .inf-row .bar { height: 8px; }
   .gen-select { background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: inherit; }
+  .checks { display: grid; gap: 6px; margin-top: 8px; }
+  .checks label { display: flex; gap: 8px; align-items: flex-start; font-size: 15px; cursor: pointer; }
+  .checks input { margin-top: 3px; accent-color: var(--warning); width: 16px; height: 16px; }
+  .status { white-space: nowrap; font-weight: 700; }
+  table.mon td, table.mon th { white-space: normal; }
+  table.mon td:nth-child(2), table.mon td:nth-child(3) { text-align: right; font-variant-numeric: tabular-nums; }
+  .kv { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .kv b { font-variant-numeric: tabular-nums; }
+  .kv:last-child { border-bottom: 0; }
   .ctrl.stack { flex-direction: column; align-items: flex-start; gap: 6px; }
   #tree text { font-family: "Segoe UI", Calibri, sans-serif; }
   .legend { display: flex; gap: 16px; align-items: center; color: var(--muted); font-size: 14px; }
@@ -197,6 +206,11 @@
       </div>
       <p class="note" id="gen-note" aria-live="polite" style="margin:8px 0 0"></p>
     </div>
+    <details class="card" id="quality-box" style="margin-bottom:18px">
+      <summary style="cursor:pointer;font-weight:700;color:var(--cyan)">Add bad data quality to the history the model learns from</summary>
+      <fieldset class="checks" id="train-issues" style="border:0;padding:0;margin:8px 0 0"><legend class="sr-only">Data quality problems in the learning data</legend></fieldset>
+      <p class="note" style="margin:8px 0 0">Applied to the 2024 clients only. The 2025 test clients stay clean, so step 5 shows the true impact on the model.</p>
+    </details>
     <div class="row" style="margin-bottom:18px">
       <div class="card kpi"><div class="v" id="k-n"></div><div class="l">clients</div></div>
       <div class="card kpi"><div class="v" id="k-train"></div><div class="l">to <b>learn</b> from (2024 outcomes)</div></div>
@@ -353,6 +367,31 @@
       <span class="note" id="g-summary" aria-live="polite"></span>
     </div>
   </section>
+  <!-- 7 MONITOR (production: new clients arrive, outcomes only known months later) -->
+  <section id="s-monitor">
+    <h2 tabindex="-1">7 · Monitor new clients</h2>
+    <p class="lead">The model is live. 1,000 new clients arrive in 2026, and whether they leave will only be known months later. Until then, we watch the data going in.</p>
+    <div class="row">
+      <div class="card" style="flex:1 1 300px">
+        <h3 style="margin:0 0 2px;font-size:18px">Break the incoming data</h3>
+        <fieldset class="checks" id="inf-issues" style="border:0;padding:0;margin:4px 0 0"><legend class="sr-only">Data quality problems in production</legend></fieldset>
+        <p class="note" style="margin:10px 0 0">The model does not change. Only the data it receives does.</p>
+      </div>
+      <div class="card" style="flex:1.3 1 380px">
+        <h3 style="margin:0 0 2px;font-size:18px">Data drift monitor</h3>
+        <p class="note" style="margin:0 0 6px">Each signal of the new batch compared with the data the model learned from (Population Stability Index: below 0.10 stable, 0.10–0.25 watch, above 0.25 alert).</p>
+        <table class="mon" id="t-psi"></table>
+      </div>
+      <div class="card" style="flex:1 1 300px">
+        <h3 style="margin:0 0 2px;font-size:18px">What the model does</h3>
+        <p class="note" style="margin:0 0 4px">Known today</p>
+        <div id="mon-now"></div>
+        <p class="note" style="margin:12px 0 4px">Known only months later, when outcomes arrive</p>
+        <div id="mon-later"></div>
+        <p class="note" id="mon-msg" aria-live="polite" style="margin:10px 0 0"></p>
+      </div>
+    </div>
+  </section>
 </main>
 <div class="sr-only" aria-live="polite" id="sr-status"></div>
 <footer>Synthetic data for training purposes only: no real bank, client or person is represented. Decision tree (CART) computed live in your browser; works offline. · Made by <a href="https://altaira.eu" rel="noopener">Altaïra</a> · <a href="https://github.com/FrtZi/banking-churn-demo" rel="noopener">Source code (MIT)</a></footer>
@@ -366,15 +405,16 @@
   const pct = (x) => `${Math.round(x * 100)}%`;
   const eur = (x) => `${x < 0 ? "−" : ""}€${Math.abs(Math.round(x)).toLocaleString("en-US")}`;
   // training default: every figure quoted in the speaker notes assumes these settings
-  const DEFAULT_DATA = { n: 500, split: 80, sample: 1 };
+  const DEFAULT_DATA = { n: 500, split: 80, sample: 1, quality: [] };
   let gen = { ...DEFAULT_DATA };
   const seedOf = (sample) => 101 + (sample - 1) * 1009;
-  const isDefaultData = () => gen.n === DEFAULT_DATA.n && gen.split === DEFAULT_DATA.split && gen.sample === DEFAULT_DATA.sample;
+  const isDefaultData = () => gen.n === DEFAULT_DATA.n && gen.split === DEFAULT_DATA.split && gen.sample === DEFAULT_DATA.sample && !gen.quality.length;
   let data, train, test;
   function makeData() {
-    data = Core.generate(gen.n, seedOf(gen.sample), gen.split / 100);
-    train = data.filter((r) => r.cohort === 2024);
-    test = data.filter((r) => r.cohort === 2025);
+    const raw = Core.generate(gen.n, seedOf(gen.sample), gen.split / 100);
+    train = Core.degradeTraining(raw.filter((r) => r.cohort === 2024), gen.quality);  // bad quality hits the history only
+    test = raw.filter((r) => r.cohort === 2025);
+    data = [...train, ...test];
   }
   makeData();
   const num = (id, max = Infinity) => Math.min(max, Math.max(0, Number($(id).value) || 0));
@@ -382,7 +422,7 @@
   let tree = null;
 
   // ---------- navigation
-  const steps = ["The data", "Your rules", "Train", "Rules", "Results", "Our 8 clients"];
+  const steps = ["The data", "Your rules", "Train", "Rules", "Results", "Our 8 clients", "Monitor"];
   steps.forEach((s, i) => {
     const b = document.createElement("button");
     b.innerHTML = `<b>${i + 1}</b>${s}`;
@@ -436,6 +476,7 @@
     const notes = [isDefaultData()
       ? `Training default (${DEFAULT_DATA.n} clients, ${DEFAULT_DATA.split}/${100 - DEFAULT_DATA.split}, sample 1): the figures in the speaker notes assume these settings.`
       : `Custom data (sample ${gen.sample}): the figures differ from the speaker notes.`];
+    if (gen.quality.length) notes.push(`<span class="ico-warning" aria-hidden="true">⚠</span> Bad data quality in the learning data: ${gen.quality.length} problem${gen.quality.length > 1 ? "s" : ""} applied (see below).`);
     if (learnLeavers < 25) notes.push(`<span class="ico-warning" aria-hidden="true">⚠</span> Only <b>${learnLeavers}</b> ${learnLeavers === 1 ? "leaver" : "leavers"} to learn from: the tree has very little to learn.`);
     if (testLeavers < 10) notes.push(`<span class="ico-warning" aria-hidden="true">⚠</span> Only <b>${testLeavers}</b> ${testLeavers === 1 ? "leaver" : "leavers"} among the ${fmt(test.length)} test clients: step 5 results will swing a lot, too little to confirm the model.`);
     $("gen-note").innerHTML = notes.join("<br>");
@@ -448,7 +489,18 @@
   $("gen-n").onchange = () => { gen.n = +$("gen-n").value; regenerate(); };
   $("gen-split").oninput = () => { gen.split = +$("gen-split").value; regenerate(); };
   $("gen-new").onclick = () => { gen.sample += 1; regenerate(); };
-  $("gen-reset").onclick = () => { gen = { ...DEFAULT_DATA }; regenerate(); };
+  $("gen-reset").onclick = () => { gen = { ...DEFAULT_DATA, quality: [] }; drawIssueBoxes(); regenerate(); };
+  const checkbox = (group, key, label, on) =>
+    `<label><input type="checkbox" data-group="${group}" value="${key}" ${on ? "checked" : ""}> <span>${label}</span></label>`;
+  function drawIssueBoxes() {
+    $("train-issues").querySelectorAll("label").forEach((l) => l.remove());
+    $("train-issues").insertAdjacentHTML("beforeend", Object.entries(Core.TRAINING_ISSUES)
+      .map(([k, v]) => checkbox("train", k, v.label, gen.quality.includes(k))).join(""));
+    $("train-issues").querySelectorAll("input").forEach((c) => (c.onchange = () => {
+      gen.quality = [...$("train-issues").querySelectorAll("input:checked")].map((x) => x.value);
+      regenerate();
+    }));
+  }
   $("csv").onclick = () => {
     const keys = ["id", "cohort", "age", "tenure", "products", "assets", "contact", "advisor", "complaint", "app", "churn"];
     const csv = [keys.join(",")].concat(data.map((r) => keys.map((k) => r[k]).join(","))).join("\n");
@@ -766,6 +818,46 @@
   $("room-clear").onclick = () => { room = [[null, null], [null, null], [null, null]]; drawRoomBuilder(); drawRoomScore(); };
   drawSignals();
 
+  // ---------- step 7: monitoring a model in production
+  const BATCH = Core.newBatch();            // 1,000 new 2026 clients, always the same batch
+  let prodIssues = [];
+  const usedSignals = () => new Set(Core.leaves(tree).flatMap((l) => l.path.map((c) => c.f.key)));
+  const STATUS = [[0.1, "good", "✔", "Stable"], [0.25, "warning", "⚠", "Watch"], [Infinity, "critical", "✘", "Alert"]];
+  function drawMonitor() {
+    const thr = +$("thr").value / 100;
+    const batch = Core.degradeBatch(BATCH, prodIssues);
+    const used = usedSignals();
+    $("t-psi").innerHTML = `<tr><th scope="col">Signal</th><th scope="col">PSI</th><th scope="col">Used by the model</th><th scope="col">Status</th></tr>` +
+      Core.FEATURES.map((f) => {
+        const v = Core.psi(train, batch, f);
+        const [, cls, icon, label] = STATUS.find(([max]) => v < max);
+        return `<tr><th scope="row">${f.short || f.label}</th><td>${v.toFixed(2)}</td><td>${used.has(f.key) ? "yes" : "no"}</td>` +
+          `<td class="status"><span class="ico-${cls}" aria-hidden="true">${icon}</span> ${label}</td></tr>`;
+      }).join("");
+    const clean = Core.evaluate(tree, BATCH, thr), now = Core.evaluate(tree, batch, thr);
+    const calls = (m) => m.tp + m.fp, leavers = clean.tp + clean.fn;
+    const kv = (k, v, ref) => `<div class="kv"><span>${k}</span><b>${v}${ref !== undefined && String(ref) !== String(v) ? ` <span class="note">(clean data: ${ref})</span>` : ""}</b></div>`;
+    $("mon-now").innerHTML = kv(`Clients flagged to call (risk ≥ ${$("thr").value}%)`, calls(now), calls(clean));
+    $("mon-later").innerHTML = kv("Leavers caught", `${now.tp} / ${leavers}`, `${clean.tp} / ${leavers}`) +
+      kv("Ranking score", pct(Core.score(tree, batch)), pct(Core.score(tree, BATCH)));
+    const alerts = Core.FEATURES.filter((f) => Core.psi(train, batch, f) >= 0.25);
+    const hurt = now.tp < clean.tp;
+    $("mon-msg").innerHTML = !prodIssues.length
+      ? `Clean data: every signal is stable. Note the ranking score on 1,000 new clients (${pct(Core.score(tree, BATCH))}) is lower than on the 100 test clients of step 5: a small test set can flatter a model.`
+      : `<span class="ico-${hurt ? "critical" : "warning"}" aria-hidden="true">${hurt ? "✘" : "⚠"}</span> ` +
+        `The drift monitor raises ${alerts.length} alert${alerts.length > 1 ? "s" : ""} today. ` +
+        (hurt ? `Without it, the business would only notice in months: ${clean.tp - now.tp} leavers missed.`
+              : `This time the model barely suffers: an alert must be qualified, not just raised.`);
+  }
+  function drawProdBoxes() {
+    $("inf-issues").insertAdjacentHTML("beforeend", Object.entries(Core.INFERENCE_ISSUES)
+      .map(([k, v]) => checkbox("prod", k, v.label, false)).join(""));
+    $("inf-issues").querySelectorAll("input").forEach((c) => (c.onchange = () => {
+      prodIssues = [...$("inf-issues").querySelectorAll("input:checked")].map((x) => x.value);
+      drawMonitor();
+    }));
+  }
+
   // ---------- step 4: results
   function drawResults() {
     const thr = +$("thr").value / 100;
@@ -786,6 +878,7 @@
     $("r-sens").textContent = leavers ? pct(m.tp / leavers) : "–";
     $("r-spec").textContent = pct(m.tn / (m.tn + m.fp));
     drawRoomScore(); // also redraws the ROC curve
+    drawMonitor();
     drawRules(); drawClients();
   }
 
@@ -848,7 +941,7 @@
     });
     $("pick-elbow").onclick = () => setThreshold(elbow.t);
     $("pick-value").onclick = () => setThreshold(best.t);
-    $("roc-desc").innerHTML = `Area under the curve: <b>${Core.auc(all).toFixed(2)}</b> (0.5 = coin flip, 1 = perfect). ` +
+    $("roc-desc").innerHTML = `Area under the curve (the ranking score of step 3): <b>${pct(Core.auc(all))}</b> (50% = coin flip, 100% = perfect). ` +
       `The <b>elbow</b> (${Math.floor(elbow.t * 100)}%) catches the most leavers for the fewest false alarms. ` +
       `But the right point is a business choice: with the € assumptions below, the <b>best value</b> is at ${Math.floor(best.t * 100)}%. Click any dot to try it.`;
   }
@@ -887,6 +980,8 @@
   // announce the outcome once the slider is released, not on every step
   $("thr").onchange = () => { $("sr-status").textContent = $("r-caught").textContent; };
   for (const id of ["v-client", "v-call", "v-save"]) $(id).oninput = drawResults;
+  drawIssueBoxes();
+  drawProdBoxes();
   drawData();
   drawRoomBuilder();
   retrain();

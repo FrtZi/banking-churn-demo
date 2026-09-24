@@ -18,17 +18,18 @@ as the follow-up to a paper game in which participants play the model themselves
 
 | Step | Content | Key message |
 |---|---|---|
-| 1 · The data | Synthetic clients (default 500, adjustable 100–5,000), a learn/test split (default 80/20), new random samples; warnings when there is too little data to learn or to check the model | A model learns from the past, some facts never reach the data, and too little data gives unstable results |
+| 1 · The data | Synthetic clients (default 500, adjustable 100–5,000), a learn/test split (default 80/20), new random samples; warnings when there is too little data to learn or to check the model; tick boxes to add bad data quality to the history (missing dates, lost complaints, wrong outcomes, biased sample) | A model learns from the past, some facts never reach the data, and too little data gives unstable results |
 | 2 · Your rules | The room writes the rules it used in the paper game, before seeing anything from the machine (no score shown yet) | Capturing human rules first avoids anchoring on the machine's answer |
 | 3 · Train | The decision tree with two controls (number of questions, minimum group size as a % of clients); an animated search that scores every level on hidden clients (5-fold cross-validation) and draws learned vs hidden curves; predictions for new clients | Past the best level the model memorizes noise: better on the past, worse and falsely certain on new clients. The level is measured, not guessed |
 | 4 · Rules | Each branch as a plain-English rule, next to the room's rules, now scored against the machine on the same unseen clients | A good model can be read and challenged; the most intuitive signal is not always the useful one |
 | 5 · Results | Confusion matrix, sensitivity and specificity on unseen clients; a ROC curve with the “elbow”, the best-€ threshold and the room's point; a business view in € | Accuracy alone is misleading; the threshold can be chosen automatically, but the right criterion is a business decision |
 | 6 · Our 8 clients | The model's verdict on the 8 clients of the paper game, then the reveal | Model + human judgement beats either alone |
+| 7 · Monitor | The model in production on 1,000 new 2026 clients; tick boxes break the incoming data (complaint feed, CRM migration, app tracking, format change); a drift monitor (Population Stability Index per signal) next to what the model does today and what it costs months later | The model did not change, the data did; monitoring the inputs gives the alert months before the losses show, and an alert must be qualified |
 
 ## Using it in a session
 
 - Open the live link, or save the page (it is a single file) and open it offline from a laptop or a USB stick.
-- The ← → arrow keys move between steps. `#1` to `#6` at the end of the URL opens a given step.
+- The ← → arrow keys move between steps. `#1` to `#7` at the end of the URL opens a given step.
 - Participants can follow on their phones: the layout adapts to small screens.
 
 ## Running it locally
