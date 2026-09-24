@@ -187,6 +187,23 @@ const Core = (() => {
     return m;
   }
 
-  return { rng, generate, GAME, FEATURES, train, predict, leaves, ruleText, evaluate, edgeLabel, nodeLabel, APP };
+  // ROC curve on scored rows: one point per distinct risk level, from "call nobody" to "call everybody".
+  // Each point is the threshold t = that risk level (clients with risk >= t are called).
+  function roc(tree, rows) {
+    const scored = rows.map((r) => ({ p: predict(tree, r), y: r.churn }));
+    const pos = scored.filter((s) => s.y).length, neg = scored.length - pos;
+    const levels = [...new Set(scored.map((s) => s.p))].sort((a, b) => b - a);
+    const points = [{ t: Infinity, tpr: 0, fpr: 0, tp: 0, fp: 0, fn: pos, tn: neg }];
+    for (const t of levels) {
+      const tp = scored.filter((s) => s.p >= t && s.y).length;
+      const fp = scored.filter((s) => s.p >= t && !s.y).length;
+      points.push({ t, tpr: pos ? tp / pos : 0, fpr: neg ? fp / neg : 0, tp, fp, fn: pos - tp, tn: neg - fp });
+    }
+    return points;
+  }
+  // area under the (piecewise-linear) ROC curve
+  const auc = (points) => points.slice(1).reduce((s, q, i) => s + (q.fpr - points[i].fpr) * (q.tpr + points[i].tpr) / 2, 0);
+
+  return { roc, auc, rng, generate, GAME, FEATURES, train, predict, leaves, ruleText, evaluate, edgeLabel, nodeLabel, APP };
 })();
 if (typeof module !== "undefined") module.exports = Core;

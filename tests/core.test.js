@@ -65,3 +65,25 @@ test("the two branches of a numeric split never overlap", () => {
     assert.equal(Number(no), Number(yes) + 1, `t=${t}: ${yes} / ${no}`);
   }
 });
+
+test("ROC curve runs from (0,0) to (1,1) and is monotone", () => {
+  const pts = Core.roc(tree, test2025);
+  assert.deepEqual([pts[0].fpr, pts[0].tpr], [0, 0]);
+  assert.deepEqual([pts.at(-1).fpr, pts.at(-1).tpr], [1, 1]);
+  for (let i = 1; i < pts.length; i++) {
+    assert.ok(pts[i].fpr >= pts[i - 1].fpr && pts[i].tpr >= pts[i - 1].tpr);
+    assert.equal(pts[i].tp + pts[i].fn + pts[i].fp + pts[i].tn, test2025.length);
+  }
+});
+
+test("each ROC point matches the confusion matrix at its threshold", () => {
+  for (const pt of Core.roc(tree, test2025).slice(1)) {
+    const m = Core.evaluate(tree, test2025, pt.t);
+    assert.deepEqual([m.tp, m.fp, m.fn, m.tn], [pt.tp, pt.fp, pt.fn, pt.tn]);
+  }
+});
+
+test("the model beats random guessing (AUC)", () => {
+  const a = Core.auc(Core.roc(tree, test2025));
+  assert.ok(a > 0.6 && a <= 1, `AUC ${a}`);
+});

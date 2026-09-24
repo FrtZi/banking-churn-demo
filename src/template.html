@@ -92,7 +92,20 @@
   .cell .d { color: var(--muted); font-size: 13px; }
   .good { border-color: var(--good); } .bad { border-color: var(--critical); } .warn { border-color: var(--warning); }
   .cell .n, .cell .t { color: var(--text); }
-  .side { flex: 1 1 320px; display: flex; flex-direction: column; gap: 14px; }
+  .side { flex: 1 1 300px; display: flex; flex-direction: column; gap: 14px; }
+  .rates { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; max-width: 620px; }
+  .rates .card { padding: 10px 14px; }
+  .rates .big { font-size: 26px; }
+  .roc-card h3 { margin: 0 0 2px; font-size: 18px; }
+  #roc { width: 100%; height: auto; display: block; }
+  #roc text { font-family: "Segoe UI", Calibri, sans-serif; }
+  #roc .hit { cursor: pointer; }
+  #roc .hit:focus { outline: none; }
+  #roc .hit:focus-visible + .dot, #roc .hit:hover + .dot { stroke: var(--text); }
+  .side .ctrl label { flex: 1 1 160px; }
+  .side input[type=number] { width: 96px; }
+  .pick { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0 6px; }
+  .pick .btn { padding: 7px 12px; font-size: 15px; }
   .big { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
   .alert { border-left: 4px solid var(--warning); }
   .clients { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
@@ -182,7 +195,7 @@
       <output id="thr-o"></output>
     </div>
     <div class="row">
-      <div style="flex:1 1 560px">
+      <div style="flex:1 1 400px">
         <div class="matrix">
           <div></div><div class="h">Really <b>left</b></div><div class="h">Really <b>stayed</b></div>
           <div class="rh">Model says<br><b>call</b></div>
@@ -192,6 +205,21 @@
           <div class="cell bad"><span class="sr-only">Model says fine, client really left: </span><div class="n" id="m-fn"></div><div class="t"><span class="ico-critical" aria-hidden="true">✘</span> Missed</div><div class="d">leaver not flagged</div></div>
           <div class="cell good"><span class="sr-only">Model says fine, client really stayed: </span><div class="n" id="m-tn"></div><div class="t"><span class="ico-good" aria-hidden="true">✔</span> Left alone</div><div class="d">loyal, not bothered</div></div>
         </div>
+        <div class="rates">
+          <div class="card"><div class="note">Sensitivity</div><div class="big" id="r-sens"></div><div class="note">of leavers are caught</div></div>
+          <div class="card"><div class="note">Specificity</div><div class="big" id="r-spec"></div><div class="note">of loyal clients are left alone</div></div>
+        </div>
+      </div>
+      <div class="card roc-card" style="flex:1 1 380px">
+        <h3>How is the threshold chosen?</h3>
+        <p class="note" style="margin:0 0 6px">Each dot is one possible threshold. Top-left would be perfect; the diagonal is a coin flip.</p>
+        <svg id="roc" viewBox="0 0 400 330" role="img" aria-labelledby="roc-title" aria-describedby="roc-desc"></svg>
+        <span class="sr-only" id="roc-title">ROC curve: share of leavers caught against false-alarm rate, one point per threshold.</span>
+        <div class="pick" role="group" aria-label="Choose the threshold automatically">
+          <button class="btn" id="pick-elbow">Balanced (the elbow)</button>
+          <button class="btn ghost" id="pick-value">Best € value</button>
+        </div>
+        <p class="note" id="roc-desc" style="margin:0"></p>
       </div>
       <div class="side">
         <div class="card"><div class="note">Calls to make</div><div class="big" id="r-calls"></div>
@@ -203,7 +231,7 @@
           <div class="ctrl" style="margin:0 0 6px"><label for="v-client">Revenue lost per leaver, €/yr</label><input type="number" id="v-client" value="12000" step="1000" min="0"></div>
           <div class="ctrl" style="margin:0 0 6px"><label for="v-call">Cost of one retention call, €</label><input type="number" id="v-call" value="150" step="50" min="0"></div>
           <div class="ctrl" style="margin:0"><label for="v-save">Leavers saved by a call, %</label><input type="number" id="v-save" value="30" step="5" min="0" max="100"></div>
-          <div style="margin-top:10px">Net value of the campaign: <span class="big" id="r-net" style="font-size:24px"></span></div>
+          <div style="margin-top:10px">Net value of the campaign:<br><span class="big" id="r-net" style="font-size:24px;white-space:nowrap"></span></div>
         </div>
       </div>
     </div>
@@ -234,6 +262,7 @@
   const data = Core.generate();
   const train = data.filter((r) => r.cohort === 2024);
   const test = data.filter((r) => r.cohort === 2025);
+  const num = (id, max = Infinity) => Math.min(max, Math.max(0, Number($(id).value) || 0));
   const rate = (rows) => rows.reduce((s, r) => s + r.churn, 0) / rows.length;
   let tree = null;
 
@@ -375,11 +404,69 @@
     $("r-caught").textContent = `${m.tp} of the ${leavers} leavers caught · ${calls ? pct(m.tp / calls) : "–"} of calls are useful`;
     $("r-acc").textContent = pct((m.tp + m.tn) / test.length);
     $("r-base").innerHTML = `A “model” that says <b>nobody leaves</b> scores ${pct((m.tn + m.fp) / test.length)} without catching a single leaver. Accuracy alone is misleading.`;
-    const num = (id, max = Infinity) => Math.min(max, Math.max(0, Number($(id).value) || 0));
     const net = m.tp * (num("v-save", 100) / 100) * num("v-client") - calls * num("v-call");
     $("r-net").textContent = `${net >= 0 ? "▲" : "▼"} ${eur(net)} / yr`;
     $("r-net").style.color = net >= 0 ? "var(--good)" : "var(--critical)";
+    $("r-sens").textContent = leavers ? pct(m.tp / leavers) : "–";
+    $("r-spec").textContent = pct(m.tn / (m.tn + m.fp));
+    drawRoc(thr);
     drawRules(); drawClients();
+  }
+
+  // ---------- step 4: ROC curve, the "elbow" and the business optimum
+  const setThreshold = (t) => {
+    $("thr").value = Math.max(5, Math.min(60, Math.floor(t * 100 + 1e-9)));
+    drawResults();
+    $("thr").onchange();
+  };
+  const netValue = (q) => q.tp * (num("v-save", 100) / 100) * num("v-client") - (q.tp + q.fp) * num("v-call");
+  let rocPoints = [];
+  function drawRoc(thr) {
+    const all = Core.roc(tree, test);
+    // only thresholds the slider can reach (5% to 60%), plus "call nobody"
+    rocPoints = all.filter((q) => q.t === Infinity || q.t * 100 >= 5);
+    const choices = rocPoints.slice(1);
+    const elbow = choices.reduce((b, q) => (q.tpr - q.fpr > b.tpr - b.fpr ? q : b));
+    const best = choices.reduce((b, q) => (netValue(q) > netValue(b) ? q : b));
+    const current = [...rocPoints].reverse().find((q) => q.t >= thr) || rocPoints[0];
+    const L = 52, T = 12, W = 330, H = 250; // plot box inside the 400 x 330 viewBox
+    const X = (v) => L + v * W, Y = (v) => T + (1 - v) * H;
+    let s = "";
+    for (const v of [0, 0.25, 0.5, 0.75, 1]) {
+      s += `<line x1="${X(v)}" y1="${T}" x2="${X(v)}" y2="${T + H}" stroke="#2c3a4f" stroke-width="1"/>`;
+      s += `<line x1="${L}" y1="${Y(v)}" x2="${L + W}" y2="${Y(v)}" stroke="#2c3a4f" stroke-width="1"/>`;
+      s += `<text x="${X(v)}" y="${T + H + 16}" fill="#a9b6c6" font-size="11" text-anchor="middle">${pct(v)}</text>`;
+      s += `<text x="${L - 6}" y="${Y(v) + 4}" fill="#a9b6c6" font-size="11" text-anchor="end">${pct(v)}</text>`;
+    }
+    s += `<text x="${L + W / 2}" y="${T + H + 34}" fill="#a9b6c6" font-size="12" text-anchor="middle">False alarms: share of loyal clients called (1 − specificity)</text>`;
+    s += `<text transform="translate(14 ${T + H / 2}) rotate(-90)" fill="#a9b6c6" font-size="12" text-anchor="middle">Leavers caught (sensitivity)</text>`;
+    s += `<line x1="${X(0)}" y1="${Y(0)}" x2="${X(1)}" y2="${Y(1)}" stroke="#5b7291" stroke-width="1"/>`;
+    s += `<text x="${X(0.7)}" y="${Y(0.66)}" fill="#a9b6c6" font-size="11" transform="rotate(-37 ${X(0.7)} ${Y(0.66)})">coin flip</text>`;
+    s += `<polyline points="${rocPoints.map((q) => `${X(q.fpr)},${Y(q.tpr)}`).join(" ")}" fill="none" stroke="#3987e5" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    rocPoints.forEach((q, i) => {
+      const on = q === current;
+      const tip = q.t === Infinity ? "Call nobody"
+        : `Threshold ${Math.floor(q.t * 100)}%: ${q.tp + q.fp} calls, ${pct(q.tpr)} of leavers caught, ${pct(q.fpr)} of loyal clients called`;
+      s += `<circle class="hit" data-i="${i}" cx="${X(q.fpr)}" cy="${Y(q.tpr)}" r="12" fill="transparent" tabindex="0" role="button" aria-label="${tip}"><title>${tip}</title></circle>`;
+      s += `<circle class="dot" cx="${X(q.fpr)}" cy="${Y(q.tpr)}" r="${on ? 7 : 4.5}" fill="${on ? "#eef3f8" : "#3987e5"}" stroke="#1d2a3d" stroke-width="2" pointer-events="none"/>`;
+    });
+    // elbow label below-right (clear of the y-axis ticks), best-€ label up-left (clear of the curve)
+    const label = (q, text, below) => below
+      ? `<text x="${X(q.fpr) + 8}" y="${Y(q.tpr) + 24}" fill="#eef3f8" font-size="12" font-weight="700" pointer-events="none">${text}</text>`
+      : `<text x="${X(q.fpr) - 10}" y="${Y(q.tpr) - 10}" fill="#eef3f8" font-size="12" font-weight="700" text-anchor="end" pointer-events="none">${text}</text>`;
+    s += elbow === best ? label(elbow, "Elbow = best €", true) : label(elbow, "Elbow", true) + label(best, "Best €", false);
+    const svg = $("roc");
+    svg.innerHTML = s;
+    svg.querySelectorAll(".hit").forEach((c) => {
+      const pick = () => { const q = rocPoints[+c.dataset.i]; setThreshold(q.t === Infinity ? 0.6 : q.t); };
+      c.onclick = pick;
+      c.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } };
+    });
+    $("pick-elbow").onclick = () => setThreshold(elbow.t);
+    $("pick-value").onclick = () => setThreshold(best.t);
+    $("roc-desc").innerHTML = `Area under the curve: <b>${Core.auc(all).toFixed(2)}</b> (0.5 = coin flip, 1 = perfect). ` +
+      `The <b>elbow</b> (${Math.floor(elbow.t * 100)}%) catches the most leavers for the fewest false alarms. ` +
+      `But the right point is a business choice: with the € assumptions below, the <b>best value</b> is at ${Math.floor(best.t * 100)}%. Click any dot to try it.`;
   }
 
   // ---------- step 5: game clients
