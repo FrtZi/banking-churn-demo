@@ -43,7 +43,7 @@ test("step 1: training default data", () => {
   assert.equal(text("k-train"), "400");
   assert.equal(text("k-test"), "100");
   assert.equal(text("k-rate"), "11%");
-  assert.match(text("gen-note"), /Training default/);
+  assert.equal(text("gen-note"), ""); // no warning on the training default data
 });
 
 test("step 5: results at the default 30% threshold", () => {

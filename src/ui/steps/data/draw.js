@@ -1,8 +1,8 @@
 import { countLeavers, FEATURES } from "../../../engine/index.js";
-import { CONFIG, DEFAULT_DATA } from "../../config.js";
+import { CONFIG } from "../../config.js";
 import { $, setTexts } from "../../dom.js";
 import { featureCell, featureHeader, int, pct, plural, warn } from "../../format.js";
-import { isDefaultData, leaverRate, state } from "../../state.js";
+import { leaverRate, state } from "../../state.js";
 
 /** Preview columns: the client, every signal, the outcome. Each is [title, cell HTML of a client]. */
 const COLUMNS = [
@@ -19,18 +19,13 @@ function previewTable() {
   return head + body + more;
 }
 
-/** Which settings are used, and warnings when there is too little data to learn from or to check the model. */
+/** Warnings: bad data quality applied, or too little data to learn from or to check the model. */
 function notes() {
   const { gen, train, test } = state;
   const learnLeavers = countLeavers(train);
   const testLeavers = countLeavers(test);
   const issues = Object.keys(gen.quality).length;
-  const d = DEFAULT_DATA;
-  const out = [
-    isDefaultData()
-      ? `Training default (${d.n} clients, ${d.split}/${100 - d.split}, sample 1): the figures in the speaker notes assume these settings.`
-      : `Custom data (sample ${gen.sample}): the figures differ from the speaker notes.`,
-  ];
+  const out = [];
   if (issues) {
     out.push(
       warn(`Bad data quality in the learning data: ${issues} ${plural(issues, "problem")} applied (see below).`),

@@ -18,6 +18,10 @@
   color: var(--text);
   font-weight: 700;
 }
+/* no warning to show: no gap (the paragraph stays, it announces warnings when they appear) */
+#gen-note:empty {
+  margin-top: 0;
+}
 #csv {
   margin-left: 10px;
 }
