@@ -201,3 +201,5 @@ onPick)`) instead of reading the state, and the engine never imports the UI. The
 - The training default data (500 clients, seed 101, 80/20) is what the speaker notes quote. `page.test.js`
   checks every one of those figures: if a change moves one, the test fails and the notes must be updated.
 - `npm run check` (Prettier, ESLint, tests, html-validate) must pass; the deployment runs it first.
+- Dependabot proposes the updates each month (`.github/dependabot.yml`): minor and patch versions grouped, each
+  major version alone, to be tried on a branch first.

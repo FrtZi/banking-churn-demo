@@ -36,7 +36,7 @@ as the follow-up to a paper game in which participants play the model themselves
 
 ## Running it locally
 
-Requires [Node.js](https://nodejs.org) 20 or later. The published page is one self-contained file with no runtime
+Requires [Node.js](https://nodejs.org) 22 or later (as the CI). The published page is one self-contained file with no runtime
 dependency; the development tools below are dev dependencies only.
 
 ```bash
